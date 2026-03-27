@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#07080f">
+<title>Home Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════ TOKENS ════════════════════════════ */
+:root{
+  --bg:#07080f; --surf:rgba(255,255,255,.042); --surf2:rgba(255,255,255,.07);
+  --brd:rgba(255,255,255,.085); --brd2:rgba(255,255,255,.18);
+  --txt:#e8eaf0; --muted:rgba(232,234,240,.48); --dim:rgba(232,234,240,.28);
+  --solar:#f59e0b; --bat:#22c55e; --ev:#60a5fa; --wp:#a78bfa;
+  --vac:#2dd4bf; --sec:#f87171; --baby:#f9a8d4; --nap:#c4b5fd;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;min-height:100dvh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 55% at 10% 5%,rgba(245,158,11,.045) 0%,transparent 60%),
+    radial-gradient(ellipse 55% 45% at 90% 85%,rgba(96,165,250,.05) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 35% at 50% 50%,rgba(34,197,94,.025) 0%,transparent 70%);}
+.shell{position:relative;z-index:1;max-width:1440px;margin:0 auto;}
+
+/* ═══════════════════════════ HEADER ════════════════════════════ */
+header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;animation:fadeDown .55s ease both;}
+.hdr-left h1{font-size:24px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#fff 25%,rgba(255,255,255,.4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:2.5px;text-transform:uppercase;margin-top:3px;}
+#clock{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;color:#fff;letter-spacing:-1px;text-align:right;}
+#date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;text-align:right;}
+
+/* ═══════════════════════════ BANNERS ═══════════════════════════ */
+#perm-banner{display:flex;align-items:center;gap:12px;margin:0 24px 4px;padding:9px 14px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.25);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ev);letter-spacing:.4px;animation:fadeUp .5s ease .2s both;}
+#perm-banner.hidden{display:none;}
+.pb-msg{flex:1;line-height:1.6;}
+.pb-act{padding:5px 12px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:6px;cursor:pointer;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--ev);white-space:nowrap;}
+.pb-x{cursor:pointer;opacity:.4;font-size:12px;}
+#notif-bar{display:flex;align-items:center;gap:10px;margin:0 24px 4px;padding:9px 14px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--solar);letter-spacing:.4px;}
+#notif-bar.hidden{display:none;}
+.nb-msg{flex:1;}
+.nb-dismiss{padding:3px 9px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:5px;cursor:pointer;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--solar);}
+#last-updated{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);padding:0 24px 6px;letter-spacing:1px;}
+#last-updated.hidden{display:none;}
+
+/* ═══════════════════════════ TABS ══════════════════════════════ */
+.tab-strip{display:flex;padding:0 24px;border-bottom:1px solid var(--brd);overflow-x:auto;scrollbar-width:none;animation:fadeDown .5s ease .1s both;}
+.tab-strip::-webkit-scrollbar{display:none;}
+.tab-btn{display:flex;align-items:center;gap:7px;padding:0 18px;height:54px;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;white-space:nowrap;transition:color .2s,border-color .2s;position:relative;flex-shrink:0;}
+.tab-btn .ti{font-size:14px;}
+.tab-btn:hover{color:var(--muted);}
+.tab-btn.active{color:var(--txt);border-bottom-color:var(--solar);}
+.live-pip{width:6px;height:6px;border-radius:50%;background:var(--solar);box-shadow:0 0 5px var(--solar);animation:pg 2s infinite;position:absolute;top:12px;right:6px;}
+.tab-panel{display:none;padding:24px;animation:fadeUp .35s ease both;}
+.tab-panel.active{display:block;}
+
+/* ═══════════════════════════ LAYOUT ════════════════════════════ */
+.sec-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:12px;padding-left:2px;}
+.mt{margin-top:24px;}
+.grid{display:grid;gap:14px;}
+.g3{grid-template-columns:2fr 1fr 1fr;}
+.g2{grid-template-columns:1fr 1fr;}
+.g2w{grid-template-columns:1.4fr 1fr;}
+@media(max-width:1100px){.g3{grid-template-columns:1fr 1fr;}.g2w{grid-template-columns:1fr;}}
+@media(max-width:640px){.g3,.g2,.g2w{grid-template-columns:1fr;}}
+
+/* ═══════════════════════════ CARD ══════════════════════════════ */
+.card{background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:20px;position:relative;overflow:hidden;transition:border-color .3s,transform .2s;animation:fadeUp .45s ease both;}
+.card:hover{transform:translateY(-2px);border-color:var(--brd2);}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);}
+.card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.1s}.card:nth-child(3){animation-delay:.15s}.card:nth-child(4){animation-delay:.2s}
+/* accent borders */
+.csolar{border-top:1px solid rgba(245,158,11,.5);} .csolar::after{content:'';position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:55%;height:36px;filter:blur(14px);background:rgba(245,158,11,.18);}
+.cbat{border-top:1px solid rgba(34,197,94,.5);}   .cbat::after{content:'';position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:55%;height:36px;filter:blur(14px);background:rgba(34,197,94,.16);}
+.cwp{border-top:1px solid rgba(167,139,250,.5);}  .cwp::after{content:'';position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:55%;height:36px;filter:blur(14px);background:rgba(167,139,250,.16);}
+.cev{border-top:1px solid rgba(96,165,250,.5);}   .cev::after{content:'';position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:55%;height:36px;filter:blur(14px);background:rgba(96,165,250,.16);}
+.cfc{border-top:1px solid rgba(245,158,11,.3);}
+.cvac{border-top:1px solid rgba(45,212,191,.5);}
+.csec{border-top:1px solid rgba(248,113,113,.5);}
+.cbaby{border-top:1px solid rgba(249,168,212,.5);}
+.cnap{border-top:1px solid rgba(196,181,253,.5);}
+.cnotif{border-top:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.025);}
+.cweather{border-top:1px solid rgba(96,165,250,.5);} .cweather::after{content:'';position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:55%;height:36px;filter:blur(14px);background:rgba(96,165,250,.18);}
+.ctoday{border-top:1px solid rgba(34,197,94,.5);}
+.cweek{border-top:1px solid rgba(167,139,250,.5);}
+.cahead{border-top:1px solid rgba(245,158,11,.4);}
+
+/* ═══════════════════════════ CARD INTERNALS ════════════════════ */
+.ch{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px;}
+.ct{display:flex;align-items:center;gap:10px;}
+.ci{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.cn{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);}
+.cs{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+.bdg{display:inline-block;padding:2px 8px;background:rgba(255,255,255,.05);border:1px solid var(--brd);border-radius:4px;font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;color:var(--dim);}
+.bdg.live{color:#22c55e;border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.07);}
+.bdg.mock{color:#f59e0b;border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07);}
+.bdg.app{color:var(--muted);}
+.bdg.unoff{color:var(--vac);border-color:rgba(45,212,191,.3);background:rgba(45,212,191,.07);}
+.bdg.wifi{color:var(--wp);border-color:rgba(167,139,250,.3);}
+.bdg.gcal{color:var(--ev);border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.07);}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sdot.live{background:#22c55e;box-shadow:0 0 6px #22c55e;animation:pg 2s infinite;}
+.sdot.warn{background:#f59e0b;}
+.sdot.off{background:var(--dim);}
+.bv{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:500;line-height:1;letter-spacing:-2px;}
+.bv .u{font-size:15px;font-weight:300;color:var(--muted);margin-left:2px;}
+.vl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;}
+.ms{display:flex;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--brd);flex-wrap:wrap;}
+.msi{flex:1;min-width:50px;}
+.msi .v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:#fff;}
+.msi .l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+.pb{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;}
+.pf{height:100%;border-radius:3px;transition:width .8s ease;}
+.sf{background:linear-gradient(90deg,#d97706,#fcd34d);box-shadow:0 0 7px rgba(245,158,11,.5);}
+.bf{background:linear-gradient(90deg,#16a34a,#22c55e);box-shadow:0 0 7px rgba(34,197,94,.4);}
+.ef{background:linear-gradient(90deg,#2563eb,#60a5fa);box-shadow:0 0 7px rgba(96,165,250,.4);}
+.wf{background:linear-gradient(90deg,#7c3aed,#a78bfa);}
+.fl{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.fi{display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:10px;}
+.fd{width:5px;height:5px;border-radius:50%;}
+.rw{display:flex;justify-content:center;align-items:center;position:relative;}
+.rt{position:absolute;text-align:center;}
+.rp{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--solar);}
+.rs{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.4px;margin-top:10px;}
+.shim{position:relative;overflow:hidden;}
+.shim::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);animation:shimmer 2.4s infinite;}
+.cam-g{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px;}
+.cam-t{background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.18);border-radius:8px;padding:9px 10px;display:flex;align-items:center;gap:8px;}
+.cam-d{width:6px;height:6px;border-radius:50%;background:var(--sec);box-shadow:0 0 4px var(--sec);animation:pr 2.5s infinite;flex-shrink:0;}
+.cam-n{font-size:11px;font-weight:600;color:rgba(255,255,255,.78);}
+.lbtn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--brd);color:var(--txt);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.4px;padding:7px 12px;border-radius:8px;cursor:pointer;text-decoration:none;transition:all .2s;margin-top:14px;}
+.lbtn:hover{background:rgba(255,255,255,.1);border-color:var(--brd2);}
+.vs{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.18);border-radius:10px;}
+.vs-spin{font-size:22px;animation:sp 4s linear infinite;}
+.nap-bar{display:flex;height:22px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.04);gap:2px;}
+.nap-bar .aw{background:rgba(255,255,255,.07);}
+.nap-bar .sl{background:linear-gradient(90deg,#7c3aed,#c4b5fd);}
+.fbs{display:flex;align-items:flex-end;gap:4px;height:60px;}
+.fbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.fb{width:100%;border-radius:2px 2px 0 0;transition:height .6s ease;}
+.fbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--dim);text-align:center;}
+.offline-strip{display:none;padding:8px 14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sec);letter-spacing:.4px;margin-bottom:12px;}
+.offline-strip.show{display:block;}
+
+/* ═══════════════════════════ NOTIF SETTINGS ════════════════════ */
+.notif-setting{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surf);border:1px solid var(--brd);border-radius:10px;margin-bottom:10px;}
+.ns-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);margin-bottom:3px;}
+.ns-desc{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.5px;}
+.ns-info{flex:1;}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:11px;cursor:pointer;transition:.25s;}
+.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;left:3px;top:3px;background:#fff;transition:.25s;}
+.toggle input:checked + .toggle-slider{background:var(--solar);}
+.toggle input:checked + .toggle-slider::before{transform:translateX(18px);}
+.test-btn{padding:10px 18px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--solar);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;}
+.test-btn:hover{background:rgba(245,158,11,.18);}
+
+/* ═══════════════════════════ SCHEDULE TAB ══════════════════════ */
+.big-temp{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:500;line-height:1;letter-spacing:-3px;color:var(--ev);}
+.big-temp .u{font-size:18px;font-weight:300;color:var(--muted);}
+.day-fc-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:14px;}
+@media(max-width:640px){.day-fc-row{grid-template-columns:repeat(4,1fr);}}
+.dfc{background:var(--surf2);border:1px solid var(--brd);border-radius:10px;padding:10px 8px;text-align:center;}
+.dfc.today{border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.07);}
+.dfc-day{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.dfc-icon{font-size:18px;margin-bottom:5px;}
+.dfc-hi{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--txt);}
+.dfc-lo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.dfc-rain{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ev);margin-top:3px;}
+.ev-list{display:flex;flex-direction:column;gap:8px;}
+.ev-row{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;background:var(--surf2);border:1px solid var(--brd);border-radius:10px;transition:border-color .2s;}
+.ev-row:hover{border-color:var(--brd2);}
+.ev-cal-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.ev-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:60px;flex-shrink:0;line-height:1.6;}
+.ev-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);line-height:1.4;}
+.ev-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;}
+.ev-cal-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-top:3px;}
+.ev-no{padding:16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;}
+.week-days{display:flex;flex-direction:column;gap:8px;}
+.wd-row{display:flex;align-items:flex-start;gap:12px;padding:8px 12px;border-radius:8px;border-left:3px solid var(--brd);}
+.wd-row.has-ev{background:rgba(255,255,255,.025);border-left-color:var(--wp);}
+.wd-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:72px;flex-shrink:0;padding-top:1px;}
+.wd-events{flex:1;display:flex;flex-direction:column;gap:4px;}
+.wd-ev{font-size:12px;font-weight:600;color:rgba(255,255,255,.82);display:flex;align-items:center;gap:6px;}
+.wd-ev-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);}
+.wd-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.wd-none{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);font-style:italic;}
+.ahead-row{padding:12px 14px;background:var(--surf2);border:1px solid var(--brd);border-radius:10px;display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+.ahead-span{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--solar);letter-spacing:1px;text-transform:uppercase;min-width:90px;flex-shrink:0;}
+.ahead-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);}
+.ahead-dur{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;}
+.ahead-pill{padding:2px 8px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:var(--solar);flex-shrink:0;}
+.gcal-banner{display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.22);border-radius:10px;margin-bottom:16px;}
+.gcal-banner .gb-msg{flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ev);letter-spacing:.4px;line-height:1.7;}
+.gcal-connect-btn{padding:7px 14px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.35);border-radius:7px;color:var(--ev);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.4px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.gcal-connect-btn:hover{background:rgba(96,165,250,.25);}
+.spin-sm{display:inline-block;width:12px;height:12px;border:2px solid var(--brd2);border-top-color:var(--ev);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle;margin-right:6px;}
+
+/* ═══════════════════════════ ANIMATIONS ════════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pg{0%,100%{box-shadow:0 0 4px #22c55e;opacity:1}50%{box-shadow:0 0 10px #22c55e;opacity:.7}}
+@keyframes pr{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes sp{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+footer{text-align:center;padding:28px 24px 32px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.5px;line-height:2.2;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══════════ HEADER ═══════════════════════════════════════════ -->
+<header>
+  <div class="hdr-left">
+    <h1>Home Hub</h1>
+    <div class="hdr-sub" id="hdr-sub">Family Dashboard · Violet Town</div>
+  </div>
+  <div><div id="clock">--:--:--</div><div id="date">--</div></div>
+</header>
+
+<div id="perm-banner">
+  <span style="font-size:18px;flex-shrink:0">🔔</span>
+  <div class="pb-msg">Enable push notifications for solar peak alerts &amp; EV charging reminders.</div>
+  <div class="pb-act" onclick="requestNotifPermission()">Enable</div>
+  <div class="pb-x" onclick="this.parentElement.classList.add('hidden')">✕</div>
+</div>
+
+<div id="notif-bar" class="hidden">
+  <span id="notif-icon" style="font-size:16px;flex-shrink:0">☀️</span>
+  <span class="nb-msg" id="notif-msg"></span>
+  <span class="nb-dismiss" onclick="this.parentElement.classList.add('hidden')">Dismiss</span>
+</div>
+
+<div id="last-updated" class="hidden"></div>
+
+<!-- ═══════════ TAB STRIP ════════════════════════════════════════ -->
+<nav class="tab-strip">
+  <button class="tab-btn active" onclick="switchTab('energy',this)"><span class="ti">⚡</span>Energy &amp; Power<span class="live-pip"></span></button>
+  <button class="tab-btn" onclick="switchTab('ev',this)"><span class="ti">🚗</span>Electric Vehicle</button>
+  <button class="tab-btn" onclick="switchTab('home',this)"><span class="ti">🏠</span>Home Systems</button>
+  <button class="tab-btn" onclick="switchTab('baby',this)"><span class="ti">👶</span>Baby</button>
+  <button class="tab-btn" onclick="switchTab('schedule',this)"><span class="ti">📅</span>Schedule</button>
+  <button class="tab-btn" onclick="switchTab('notifications',this)"><span class="ti">🔔</span>Notifications</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 1 · ENERGY & POWER
+════════════════════════════════════════════════════════════════ -->
+<div id="tab-energy" class="tab-panel active">
+  <div class="offline-strip" id="fronius-offline">⚠ Could not reach Fronius — showing last known values. Will retry automatically.</div>
+  <div class="sec-lbl">☀️ &nbsp;Solar &amp; Battery — Fronius GEN24</div>
+  <div class="grid g3">
+
+    <!-- SOLAR -->
+    <div class="card csolar">
+      <div class="ch">
+        <div class="ct"><div class="ci" style="background:rgba(245,158,11,.14)">☀️</div><div><div class="cn">Solar Production</div><div class="cs">Fronius Solar.web</div></div></div>
+        <div style="display:flex;align-items:center;gap:7px"><span class="bdg live" id="solar-badge">Live</span><div class="sdot live" id="solar-dot"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <div class="rw">
+          <svg width="90" height="90" viewBox="0 0 90 90"><circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7"/><circle id="solar-ring" cx="45" cy="45" r="36" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="56.5" transform="rotate(-90 45 45)" style="filter:drop-shadow(0 0 5px #f59e0b);transition:stroke-dashoffset .8s ease"/></svg>
+          <div class="rt"><div class="rp" id="solar-self-suf">--</div><div class="rs">Self-suf</div></div>
+        </div>
+        <div>
+          <div class="bv" style="color:var(--solar)"><span id="solar-kw">--</span><span class="u">kW</span></div>
+          <div class="vl">Generating right now</div>
+          <div class="fl">
+            <div class="fi"><div class="fd" style="background:#22c55e"></div><span style="color:#22c55e"><span id="solar-to-home">--</span> home</span></div>
+            <span style="color:var(--dim);font-size:9px">·</span>
+            <div class="fi"><div class="fd" style="background:#60a5fa"></div><span style="color:#60a5fa"><span id="solar-to-batt">--</span> batt</span></div>
+            <span style="color:var(--dim);font-size:9px">·</span>
+            <div class="fi"><div class="fd" id="grid-dot2" style="background:rgba(255,255,255,.3)"></div><span id="grid-flow-lbl" style="color:var(--muted)"><span id="solar-grid">--</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ms">
+        <div class="msi"><div class="v" style="color:var(--solar)" id="solar-today-kwh">--</div><div class="l">kWh today</div></div>
+        <div class="msi"><div class="v" id="solar-month-kwh">--</div><div class="l" id="solar-month-lbl">this month</div></div>
+        <div class="msi"><div class="v" style="color:#22c55e" id="solar-today-aud">--</div><div class="l">Feed-in today</div></div>
+        <div class="msi"><div class="v" id="solar-year-kwh">--</div><div class="l">kWh this year</div></div>
+      </div>
+    </div>
+
+    <!-- BATTERY -->
+    <div class="card cbat">
+      <div class="ch">
+        <div class="ct"><div class="ci" style="background:rgba(34,197,94,.14)">🔋</div><div><div class="cn">Battery Storage</div><div class="cs">Fronius GEN24</div></div></div>
+        <span class="bdg live" id="bat-badge">Live</span>
+      </div>
+      <div class="bv" style="color:var(--bat)"><span id="bat-soc">--</span><span class="u">%</span></div>
+      <div class="vl">State of charge</div>
+      <div class="pb shim" style="margin-top:14px;height:10px"><div class="pf bf" id="bat-bar" style="width:0%"></div></div>
+      <div class="chip" id="bat-chip" style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2)">
+        <div class="sdot live" id="bat-chip-dot"></div><span id="bat-status" style="color:var(--bat)">--</span>
+      </div>
+      <div class="ms">
+        <div class="msi"><div class="v" id="bat-rate" style="color:var(--bat)">--</div><div class="l">kW rate</div></div>
+        <div class="msi"><div class="v">8.9</div><div class="l">kWh capacity</div></div>
+        <div class="msi"><div class="v" id="bat-time">--</div><div class="l" id="bat-time-lbl">Remaining</div></div>
+      </div>
+    </div>
+
+    <!-- WATTPILOT -->
+    <div class="card cwp">
+      <div class="ch">
+        <div class="ct"><div class="ci" style="background:rgba(167,139,250,.14)">⚡</div><div><div class="cn">Wattpilot</div><div class="cs">Fronius EV Charger</div></div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="bdg live" id="wp-badge">Live</span><span class="bdg wifi">Via GEN24</span></div>
+      </div>
+      <div class="bv" style="color:var(--wp)"><span id="wp-kw">--</span><span class="u">kW</span></div>
+      <div class="vl" id="wp-status-lbl">Charge rate</div>
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:5px">
+          <span id="wp-mode-lbl">Solar surplus mode</span><span style="color:var(--wp)" id="wp-mode">ECO active</span>
+        </div>
+        <div class="pb shim"><div class="pf wf" id="wp-bar" style="width:0%"></div></div>
+      </div>
+      <div class="ms">
+        <div class="msi"><div class="v" style="color:var(--wp)" id="wp-kw2">--</div><div class="l">kW charging</div></div>
+        <div class="msi"><div class="v" id="wp-solar-share">--</div><div class="l">Solar share</div></div>
+        <div class="msi"><div class="v" id="wp-grid-draw">--</div><div class="l">Grid draw</div></div>
+      </div>
+    </div>
+
+  </div><!-- /g3 -->
+
+  <!-- FORECAST + APPLIANCES -->
+  <div class="mt">
+    <div class="sec-lbl">📅 &nbsp;Today's Solar Forecast &amp; Appliance Planner</div>
+    <div class="grid g2">
+      <div class="card cfc">
+        <div class="ch">
+          <div class="ct"><div class="ci" style="background:rgba(245,158,11,.1)">📊</div><div><div class="cn">Generation Forecast</div><div class="cs" id="weather-desc-sub">Fronius weather data</div></div></div>
+          <span class="bdg live" id="fc-badge">Live</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">Now: <span id="weather-temp">--</span>°C</span>
+          <span style="color:var(--dim);font-size:9px">·</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="weather-desc">--</span>
+          <span style="color:var(--dim);font-size:9px">·</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--solar)" id="insolation">--</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px">5-day expected yield (kWh)</div>
+        <div class="fbs" id="forecast-bars"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <div style="flex:1;padding:9px 12px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.22);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--wp)">💡 <span id="peak-window">Calculating…</span></div>
+          <div style="flex:1;padding:9px 12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--bat)">🔋 Today forecast: <span id="today-fc-kwh">--</span> kWh</div>
+        </div>
+      </div>
+      <div class="card" style="border-top:1px solid rgba(245,158,11,.3)">
+        <div class="ch"><div class="ct"><div class="ci" style="background:rgba(245,158,11,.1)">🏠</div><div><div class="cn">Best Appliance Windows</div><div class="cs">Today's recommendation</div></div></div></div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:9px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--solar);letter-spacing:.4px;margin-bottom:3px" id="app-win-1">🌞 Calculating…</div><div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.85)">Washing Machine + Dryer</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px">~4.5 kW combined · run back-to-back</div></div>
+          <div style="padding:10px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:9px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ev);letter-spacing:.4px;margin-bottom:3px" id="app-win-2">🚗 Calculating…</div><div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.85)">EV Charging (Wattpilot ECO)</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px" id="ev-free-solar">Est. free solar available</div></div>
+          <div style="padding:10px 12px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:9px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--wp);letter-spacing:.4px;margin-bottom:3px" id="app-win-3">🍽 Calculating…</div><div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.85)">Dishwasher</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px">~1.2 kW · lowest grid draw window</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-energy -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 2 · ELECTRIC VEHICLE
+════════════════════════════════════════════════════════════════ -->
+<div id="tab-ev" class="tab-panel">
+  <div class="sec-lbl">🚗 &nbsp;Tesla — Fleet API &nbsp;<span class="bdg mock">Mock — connect API to go live</span></div>
+  <div class="grid g2">
+    <div class="card cev">
+      <div class="ch">
+        <div class="ct"><div class="ci" style="background:rgba(96,165,250,.14)">🚗</div><div><div class="cn">Tesla</div><div class="cs">Tesla Fleet API</div></div></div>
+        <div style="display:flex;align-items:center;gap:7px"><div class="bdg mock">Mock</div><div class="sdot warn"></div></div>
+      </div>
+      <div style="display:flex;justify-content:center;margin:8px 0 14px">
+        <svg width="220" height="72" viewBox="0 0 220 72" fill="none">
+          <path d="M22 54 Q24 54 33 44 Q44 28 76 24 Q94 21 110 21 Q128 21 150 26 Q176 31 180 44 L188 54 Q192 54 192 56 L18 56 Q18 54 22 54Z" fill="rgba(96,165,250,.12)" stroke="rgba(96,165,250,.45)" stroke-width="1.2"/>
+          <path d="M78 43 Q88 27 110 25 Q130 25 140 43Z" fill="rgba(96,165,250,.1)" stroke="rgba(96,165,250,.28)" stroke-width=".8"/>
+          <path d="M140 43 Q148 33 158 31 Q168 30 175 43Z" fill="rgba(96,165,250,.07)" stroke="rgba(96,165,250,.22)" stroke-width=".8"/>
+          <circle cx="62" cy="57" r="12" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.4)" stroke-width="1.5"/>
+          <circle cx="62" cy="57" r="5.5" fill="rgba(96,165,250,.22)"/>
+          <circle cx="158" cy="57" r="12" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.4)" stroke-width="1.5"/>
+          <circle cx="158" cy="57" r="5.5" fill="rgba(96,165,250,.22)"/>
+          <rect x="42" y="56" width="76" height="3.5" rx="1.75" fill="rgba(96,165,250,.08)"/>
+          <rect x="42" y="56" width="53" height="3.5" rx="1.75" fill="#60a5fa" style="filter:drop-shadow(0 0 3px #60a5fa)"/>
+        </svg>
+      </div>
+      <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+        <div><div class="bv" style="color:var(--ev)">70<span class="u">%</span></div><div class="vl">Battery level</div></div>
+        <div style="flex:1;min-width:80px;padding-bottom:8px"><div class="pb" style="height:8px"><div class="pf ef" style="width:70%"></div></div></div>
+      </div>
+      <div class="ms">
+        <div class="msi"><div class="v" style="color:var(--ev)">298</div><div class="l">km range</div></div>
+        <div class="msi"><div class="v" style="color:#22c55e">+<span id="ev-charge-kw">7.4</span> kW</div><div class="l">Charging</div></div>
+        <div class="msi"><div class="v">90%</div><div class="l">Limit set</div></div>
+        <div class="msi"><div class="v">~1.8h</div><div class="l">To limit</div></div>
+      </div>
+    </div>
+    <div class="card cwp">
+      <div class="ch">
+        <div class="ct"><div class="ci" style="background:rgba(167,139,250,.14)">⚡</div><div><div class="cn">Wattpilot Live Detail</div><div class="cs">Fronius GEN24 — Live</div></div></div>
+        <span class="bdg live">Live</span>
+      </div>
+      <div class="bv" style="color:var(--wp)"><span id="ev-wp-kw">--</span><span class="u">kW</span></div>
+      <div class="vl">Charge rate right now</div>
+      <div class="pb shim" style="margin-top:14px;height:8px"><div class="pf wf" id="ev-wp-bar" style="width:0%"></div></div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="padding:8px 12px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:8px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px"><span style="color:var(--muted)">Mode</span><span style="color:var(--wp)" id="ev-wp-mode">--</span></div>
+        <div style="padding:8px 12px;background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:8px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px"><span style="color:var(--muted)">Solar share</span><span style="color:var(--bat)" id="ev-solar-share">--</span></div>
+        <div style="padding:8px 12px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.18);border-radius:8px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px"><span style="color:var(--muted)">Grid draw for EV</span><span style="color:var(--sec)" id="ev-grid-draw">--</span></div>
+        <div style="padding:8px 12px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:8px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px"><span style="color:var(--muted)">Surplus forecast today</span><span style="color:var(--solar)" id="ev-surplus">--</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="mt">
+    <div class="sec-lbl">📈 &nbsp;Solar Forecast &amp; Charge Optimiser</div>
+    <div class="card cfc">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(245,158,11,.1)">📈</div><div><div class="cn">Optimal Charging Windows</div><div class="cs">Based on live forecast data</div></div></div><span class="bdg live">Live forecast</span></div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div style="flex:2;min-width:200px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px">5-day forecast (kWh per day)</div>
+          <div class="fbs" id="forecast-bars-ev" style="height:80px"></div>
+        </div>
+        <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;justify-content:center">
+          <div style="padding:10px 12px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.22);border-radius:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px">Best charging window</div><div style="font-size:15px;font-weight:700;color:var(--wp)">10:00am – 3:00pm</div></div>
+          <div style="padding:10px 12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px">Today forecast</div><div style="font-size:15px;font-weight:700;color:var(--bat)" id="ev-today-fc">-- kWh</div></div>
+          <div style="padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px">Est. grid saving today</div><div style="font-size:15px;font-weight:700;color:var(--solar)" id="ev-saving">Calculating…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-ev -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 3 · HOME SYSTEMS
+════════════════════════════════════════════════════════════════ -->
+<div id="tab-home" class="tab-panel">
+  <div class="sec-lbl">🤖 &nbsp;Robot Vacuum — ECOVACS</div>
+  <div class="grid g2">
+    <div class="card cvac">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(45,212,191,.14)">🤖</div><div><div class="cn">ECOVACS Vacuum</div><div class="cs">Unofficial API</div></div></div><div class="bdg unoff">Unoff. API</div></div>
+      <div class="vs"><div class="vs-spin">🔄</div><div><div style="font-size:14px;font-weight:700;color:var(--vac)">Cleaning</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px">Living Room Zone · 34 min elapsed</div></div></div>
+      <div class="ms">
+        <div class="msi"><div class="v" style="color:var(--vac)">82%</div><div class="l">Battery</div></div>
+        <div class="msi"><div class="v">87%</div><div class="l">Coverage</div></div>
+        <div class="msi"><div class="v">11:20am</div><div class="l">Started</div></div>
+        <div class="msi"><div class="v">~18min</div><div class="l">Remaining</div></div>
+      </div>
+    </div>
+    <div class="card" style="border-top:1px solid rgba(45,212,191,.3)">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(45,212,191,.1)">📋</div><div><div class="cn">Recent Sessions</div><div class="cs">Last 7 days</div></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;padding:7px 10px;background:rgba(45,212,191,.05);border:1px solid rgba(45,212,191,.12);border-radius:7px"><span style="color:var(--muted)">Today, 11:20am</span><span style="color:var(--vac)">In progress</span></div>
+        <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;padding:7px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px"><span style="color:var(--muted)">Yesterday, 9:15am</span><span style="color:#22c55e">Done · 52m</span></div>
+        <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;padding:7px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px"><span style="color:var(--muted)">Saturday, 8:30am</span><span style="color:#22c55e">Done · 1h 4m</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="mt">
+    <div class="sec-lbl">📷 &nbsp;Security Cameras — SWANN</div>
+    <div class="grid g2">
+      <div class="card csec">
+        <div class="ch"><div class="ct"><div class="ci" style="background:rgba(248,113,113,.14)">📷</div><div><div class="cn">Camera Status</div><div class="cs">SWANN — No public API</div></div></div><div class="bdg app">App Only</div></div>
+        <div class="cam-g">
+          <div class="cam-t"><div class="cam-d"></div><div class="cam-n">Front Door</div></div>
+          <div class="cam-t"><div class="cam-d"></div><div class="cam-n">Backyard</div></div>
+          <div class="cam-t"><div class="cam-d"></div><div class="cam-n">Driveway</div></div>
+          <div class="cam-t"><div class="cam-d"></div><div class="cam-n">Garage</div></div>
+        </div>
+        <div style="margin-top:12px;padding:9px 12px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.15);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">All 4 cameras online · No motion events in last hour</div>
+        <a href="https://home.swann.com" target="_blank" rel="noopener" class="lbtn">↗ Open SWANN App</a>
+      </div>
+      <div class="card" style="border-top:1px solid rgba(248,113,113,.3)">
+        <div class="ch"><div class="ct"><div class="ci" style="background:rgba(248,113,113,.1)">🔔</div><div><div class="cn">Motion Events</div><div class="cs">Today's log</div></div></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="padding:8px 10px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.15);border-radius:7px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sec)">8:42am · Front Door</div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.75);margin-top:2px">Person detected — delivery</div></div>
+          <div style="padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">7:15am · Driveway</div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.75);margin-top:2px">Car departed</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-home -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 4 · BABY
+════════════════════════════════════════════════════════════════ -->
+<div id="tab-baby" class="tab-panel">
+  <div class="sec-lbl">👶 &nbsp;Baby Monitor — CUBO AI</div>
+  <div class="grid g2">
+    <div class="card cbaby">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(249,168,212,.14)">👶</div><div><div class="cn">CUBO AI Monitor</div><div class="cs">No public API — App only</div></div></div><div class="bdg app">App Only</div></div>
+      <div style="padding:12px 14px;background:rgba(249,168,212,.06);border:1px solid rgba(249,168,212,.22);border-radius:10px;margin-bottom:14px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--baby);letter-spacing:.5px;margin-bottom:4px">😴 &nbsp;Baby is sleeping</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">No face-cover detected · 1h 12m elapsed</div></div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px;font-size:11px;color:rgba(255,255,255,.75)">📌 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">11:04am</span> &nbsp;Movement detected</div>
+        <div style="padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px;font-size:11px;color:rgba(255,255,255,.75)">📌 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">10:47am</span> &nbsp;Baby woke up</div>
+        <div style="padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px;font-size:11px;color:rgba(255,255,255,.75)">📌 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">9:08am</span> &nbsp;Nap started</div>
+      </div>
+      <a href="https://www.cuboai.com" target="_blank" rel="noopener" class="lbtn">↗ Open CUBO AI App</a>
+    </div>
+    <div class="card" style="border-top:1px solid rgba(249,168,212,.3)">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(249,168,212,.1)">💡</div><div><div class="cn">About CUBO AI</div><div class="cs">API status</div></div></div></div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.9">CUBO AI does not offer a public API. All real-time video, alerts, and analytics are in their app only.<br><br>The status above is a static placeholder — tap below for live monitoring.</div>
+      <div style="margin-top:14px;padding:10px 14px;background:rgba(249,168,212,.05);border:1px solid rgba(249,168,212,.18);border-radius:9px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8">💡 If CUBO AI ever launches a partner API this card upgrades to show live status and face-cover alerts automatically.</div>
+      <a href="https://www.cuboai.com" target="_blank" rel="noopener" class="lbtn">↗ Open CUBO AI App</a>
+    </div>
+  </div>
+  <div class="mt">
+    <div class="sec-lbl">🌙 &nbsp;Nap Tracker — Huckleberry</div>
+    <div class="grid g2">
+      <div class="card cnap">
+        <div class="ch"><div class="ct"><div class="ci" style="background:rgba(196,181,253,.14)">🌙</div><div><div class="cn">Huckleberry</div><div class="cs">No public API — App only</div></div></div><div class="bdg app">App Only</div></div>
+        <div class="bv" style="font-size:36px;color:var(--nap)">1h 12m</div>
+        <div class="vl">Current nap duration</div>
+        <div style="margin-top:16px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Today's sleep timeline</div>
+          <div class="nap-bar"><div class="aw" style="width:32%"></div><div class="sl" style="width:18%"></div><div class="aw" style="width:18%"></div><div class="sl" style="width:32%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--dim);margin-top:3px"><span>6am</span><span>9am</span><span>12pm</span><span>3pm</span><span>6pm</span></div>
+        </div>
+        <div class="ms">
+          <div class="msi"><div class="v" style="color:var(--nap)">3h 42m</div><div class="l">Total today</div></div>
+          <div class="msi"><div class="v">2</div><div class="l">Naps so far</div></div>
+          <div class="msi"><div class="v">11:15pm</div><div class="l">Last bedtime</div></div>
+        </div>
+        <a href="https://huckleberrycare.com" target="_blank" rel="noopener" class="lbtn">↗ Open Huckleberry App</a>
+      </div>
+      <div class="card" style="border-top:1px solid rgba(196,181,253,.3)">
+        <div class="ch"><div class="ct"><div class="ci" style="background:rgba(196,181,253,.1)">📊</div><div><div class="cn">Sleep Summary</div><div class="cs">Last 7 days (mock)</div></div></div><div class="bdg mock">Mock</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(196,181,253,.06);border:1px solid rgba(196,181,253,.18);border-radius:7px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">Today</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--nap)">3h 42m · 2 naps</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">Yesterday</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.7)">4h 10m · 2 naps</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">Sat</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.7)">3h 55m · 3 naps</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:7px"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">7-day avg</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#22c55e">3h 58m</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-baby -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 5 · SCHEDULE
+════════════════════════════════════════════════════════════════ -->
+<div id="tab-schedule" class="tab-panel">
+
+  <!-- WEATHER -->
+  <div class="sec-lbl">🌤 &nbsp;Weather — Violet Town, VIC</div>
+  <div class="grid g2w">
+
+    <div class="card cweather">
+      <div class="ch">
+        <div class="ct"><div class="ci" style="background:rgba(96,165,250,.14)">🌡️</div><div><div class="cn">Current Conditions</div><div class="cs">Violet Town · Open-Meteo</div></div></div>
+        <span class="bdg live" id="wx-badge">Live</span>
+      </div>
+      <div id="wx-loading" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:8px 0"><span class="spin-sm"></span>Fetching weather…</div>
+      <div id="wx-now" style="display:none">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div>
+            <div class="big-temp"><span id="wx-temp">--</span><span class="u">°C</span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px" id="wx-desc">--</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);margin-top:2px">Feels like <span id="wx-feel">--</span>°C</div>
+          </div>
+          <div id="wx-icon" style="font-size:52px;line-height:1">🌤️</div>
+        </div>
+        <div class="ms">
+          <div class="msi"><div class="v" id="wx-rain">--</div><div class="l">Rain today</div></div>
+          <div class="msi"><div class="v" id="wx-wind">--</div><div class="l">Wind km/h</div></div>
+          <div class="msi"><div class="v" id="wx-hi">--</div><div class="l">Today high</div></div>
+          <div class="msi"><div class="v" id="wx-lo">--</div><div class="l">Today low</div></div>
+          <div class="msi"><div class="v" id="wx-uv">--</div><div class="l">UV index</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-top:1px solid rgba(96,165,250,.3)">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(96,165,250,.1)">📅</div><div><div class="cn">7-Day Forecast</div><div class="cs">Violet Town, VIC</div></div></div><span class="bdg live">Live</span></div>
+      <div id="wx-fc-loading" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:8px 0"><span class="spin-sm"></span>Loading forecast…</div>
+      <div id="wx-fc-days" class="day-fc-row" style="display:none"></div>
+    </div>
+
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="mt">
+    <div class="sec-lbl">📆 &nbsp;Schedule — Google Calendar</div>
+
+    <div class="gcal-banner" id="gcal-banner">
+      <span style="font-size:22px;flex-shrink:0">🗓️</span>
+      <div class="gb-msg">Connect Google Calendar for live event sync.<br><span style="color:var(--dim)">One-time sign-in · reads all your calendars · nothing stored externally</span></div>
+      <button class="gcal-connect-btn" onclick="initGoogleAuth()">Connect Calendar</button>
+    </div>
+
+    <div class="grid g2">
+
+      <div class="card ctoday">
+        <div class="ch">
+          <div class="ct"><div class="ci" style="background:rgba(34,197,94,.14)">📋</div><div><div class="cn">Today in Detail</div><div class="cs" id="today-date-label">--</div></div></div>
+          <span class="bdg gcal" id="today-cal-badge">Loading…</span>
+        </div>
+        <div id="today-events" class="ev-list"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:8px 0"><span class="spin-sm"></span>Loading…</div></div>
+      </div>
+
+      <div class="card cweek">
+        <div class="ch">
+          <div class="ct"><div class="ci" style="background:rgba(167,139,250,.14)">🗓️</div><div><div class="cn">Rest of the Week</div><div class="cs" id="week-range-label">--</div></div></div>
+          <span class="bdg gcal" id="week-cal-badge">Loading…</span>
+        </div>
+        <div id="week-events" class="week-days"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:8px 0"><span class="spin-sm"></span>Loading…</div></div>
+      </div>
+
+    </div>
+
+    <div class="mt">
+      <div class="sec-lbl">🔭 &nbsp;Looking Ahead — Multi-Day Events (Next 30 Days)</div>
+      <div class="card cahead">
+        <div class="ch">
+          <div class="ct"><div class="ci" style="background:rgba(245,158,11,.1)">📌</div><div><div class="cn">Upcoming Multi-Day Events</div><div class="cs">Events spanning more than one day</div></div></div>
+          <span class="bdg gcal" id="ahead-cal-badge">Loading…</span>
+        </div>
+        <div id="ahead-events"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:8px 0"><span class="spin-sm"></span>Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-schedule -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TAB 6 · NOTIFICATIONS
+════════════════════════════════════════════════════════════════ -->
+<div id="tab-notifications" class="tab-panel">
+  <div class="grid g2">
+    <div class="card cnotif">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(245,158,11,.12)">🔔</div><div><div class="cn">Push Notification Settings</div><div class="cs">Live solar data triggers</div></div></div><div id="notif-status-badge" class="bdg">Checking…</div></div>
+      <div style="margin-bottom:16px;padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:9px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8">Notifications use <span style="color:var(--solar)">real live Fronius data</span> — the EV alert fires when solar exceeds 3 kW and the Wattpilot shows zero charging power.</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div class="notif-setting"><div class="ns-info"><div class="ns-title">☀️ Daily Solar Briefing</div><div class="ns-desc">8:00am — live peak window, surplus &amp; best appliance times</div></div><label class="toggle"><input type="checkbox" id="tog-daily" checked><span class="toggle-slider"></span></label></div>
+        <div class="notif-setting"><div class="ns-info"><div class="ns-title">🚗 EV Not Charging Alert</div><div class="ns-desc">Fires during peak solar if Wattpilot shows 0 kW (live check)</div></div><label class="toggle"><input type="checkbox" id="tog-ev" checked><span class="toggle-slider"></span></label></div>
+        <div class="notif-setting"><div class="ns-info"><div class="ns-title">🌅 Peak Solar Starts</div><div class="ns-desc">When live generation exceeds 3 kW — run high-draw appliances now</div></div><label class="toggle"><input type="checkbox" id="tog-peak" checked><span class="toggle-slider"></span></label></div>
+        <div class="notif-setting"><div class="ns-info"><div class="ns-title">🔋 Battery Full</div><div class="ns-desc">Alert when SOC reaches 95%+ and solar still producing</div></div><label class="toggle"><input type="checkbox" id="tog-batt"><span class="toggle-slider"></span></label></div>
+        <div class="notif-setting"><div class="ns-info"><div class="ns-title">🌇 Evening Wrap-Up</div><div class="ns-desc">6:00pm — today's total, savings, EV summary</div></div><label class="toggle"><input type="checkbox" id="tog-eve"><span class="toggle-slider"></span></label></div>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="test-btn" onclick="sendTestNotification()">🔔 Send Test Notification</button>
+        <button class="test-btn" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.25);color:var(--ev)" onclick="requestNotifPermission()">Enable Notifications</button>
+      </div>
+    </div>
+    <div class="card" style="border-top:1px solid rgba(255,255,255,.15)">
+      <div class="ch"><div class="ct"><div class="ci" style="background:rgba(255,255,255,.07)">📱</div><div><div class="cn">Phone Setup</div><div class="cs">iPhone &amp; Android</div></div></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--brd);border-radius:9px"><div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:6px">📱 iPhone (iOS 16.4+)</div><ol style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);line-height:2.2;padding-left:16px"><li>Open in Safari → Share → "Add to Home Screen"</li><li>Open from Home Screen</li><li>Tap Enable Notifications &amp; allow</li></ol></div>
+        <div style="padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--brd);border-radius:9px"><div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:6px">🤖 Android (Chrome)</div><ol style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);line-height:2.2;padding-left:16px"><li>Chrome → three-dot menu → "Add to Home Screen"</li><li>Tap Enable Notifications &amp; allow</li></ol></div>
+        <div style="padding:10px 14px;background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:9px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);line-height:1.8">💡 Adding to Home Screen gives a full-screen app-like experience with no browser chrome.</div>
+      </div>
+    </div>
+  </div>
+  <div class="mt">
+    <div class="sec-lbl">📋 &nbsp;Recent Notifications</div>
+    <div class="card" style="border-top:1px solid rgba(245,158,11,.3)">
+      <div id="notif-log"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:12px;text-align:center;letter-spacing:1px">No notifications sent yet this session</div></div>
+    </div>
+  </div>
+</div><!-- /tab-notifications -->
+
+<footer>
+  <div>Fronius: Live via public token · Tesla &amp; Google Calendar: Connect API to activate · Weather: Open-Meteo (live, no key needed)</div>
+  <div style="color:rgba(255,255,255,.1);margin-top:4px">Built with ☀️ for your family · Violet Town</div>
+</footer>
+
+</div><!-- /shell -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════ */
+const FRONIUS_TOKEN  = 'dfbd3089-5569-46ae-9d8f-c6eca7afa266';
+const FRONIUS_BASE   = 'https://www.solarweb.com';
+const RING_CIRC      = 226.2;
+const GRID_RATE_BUY  = 0.28;   // AUD/kWh import rate — update to your plan
+const GRID_RATE_SELL = 0.055;  // AUD/kWh feed-in — update to your plan
+
+// Location for weather — update lat/lon when you move
+const LOCATION = { name:'Violet Town, VIC', lat:-36.6219, lon:145.7184, tz:'Australia/Melbourne' };
+
+// Google Calendar OAuth2 — replace with your Client ID once set up
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+
+let liveData = {};
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
+const $  = id => document.getElementById(id);
+const st = (id, v) => { if($(id)) $(id).textContent = v; };
+const sw = (id, p) => { if($(id)) $(id).style.width = Math.min(100,Math.max(0,p))+'%'; };
+const fmt = (n,d=1) => parseFloat(n).toFixed(d);
+const fmtKW = w => fmt(w/1000);
+function tick() {
+  const n = new Date();
+  $('clock').textContent = n.toLocaleTimeString('en-AU');
+  $('date').textContent  = n.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).toUpperCase();
+}
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('tab-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════
+   FRONIUS FETCH
+═══════════════════════════════════════════════════════ */
+async function froniusFetch(url) {
+  // Local file:// preview can't reach Fronius — upload to GitHub Pages first
+  if (location.protocol === 'file:') throw new Error('Local preview — deploy to GitHub Pages to see live data');
+
+  // Try direct first (works if Fronius sends CORS headers for this origin)
+  try {
+    const r = await fetch(url, { mode:'cors', credentials:'omit' });
+    if (r.ok) return r.json();
+  } catch(_) {}
+
+  // Fallback proxies — tried in order until one works
+  const PROXIES = [
+    u => 'https://corsproxy.io/?' + encodeURIComponent(u),
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://thingproxy.freeboard.io/fetch/' + u,
+  ];
+  for (const makeProxy of PROXIES) {
+    try {
+      const r = await fetch(makeProxy(url), { credentials:'omit' });
+      if (r.ok) return r.json();
+    } catch(_) {}
+  }
+  throw new Error('All Fronius fetch attempts failed');
+}
+
+async function fetchFronius() {
+  try {
+    const [flow, prod, frWx] = await Promise.all([
+      froniusFetch(`${FRONIUS_BASE}/ActualData/GetCompareDataForPublicDisplay?PublicDisplayToken=${FRONIUS_TOKEN}`),
+      froniusFetch(`${FRONIUS_BASE}/PvSystems/GetPvSystemProductionsAndEarningsForPublicDisplay?token=${FRONIUS_TOKEN}`),
+      froniusFetch(`${FRONIUS_BASE}/PvSystems/GetWeatherWidgetDataForPublicDisplay?publicDisplayToken=${FRONIUS_TOKEN}`)
+    ]);
+    $('fronius-offline').classList.remove('show');
+    liveData = { flow, prod, frWx };
+    updateEnergyCards(flow, prod, frWx);
+    updateForecastSection(frWx);
+    updateEVTab(flow, frWx);
+    checkSmartNotifications(flow, frWx);
+    const lu = $('last-updated'); lu.classList.remove('hidden');
+    lu.textContent = '↻  Fronius updated: ' + new Date().toLocaleTimeString('en-AU');
+  } catch(e) {
+    console.warn('[HomeHub] Fronius fetch failed:', e.message);
+    $('fronius-offline').classList.add('show');
+    ['solar-badge','bat-badge','wp-badge','fc-badge'].forEach(id => {
+      const el=$(id); if(el){el.className='bdg';el.textContent='Offline';}
+    });
+  }
+}
+
+function updateEnergyCards(flow, prod, frWx) {
+  const pvW  = flow.P_PV||0, gridW = flow.P_Grid||0;
+  const loadW = Math.abs(flow.P_Load||0), battW = flow.P_Batt||0;
+  const soc  = flow.SOC||0, online = flow.IsOnline;
+  const wpW  = flow.Wattpilots?.[0]?.P||0;
+  const selfSuf = loadW>0 ? Math.round(Math.min(100,Math.max(0,(loadW-Math.max(0,gridW))/loadW*100))) : 0;
+
+  st('solar-kw', fmt(pvW/1000)); st('solar-self-suf', selfSuf+'%');
+  const ring=$('solar-ring'); if(ring) ring.setAttribute('stroke-dashoffset',(RING_CIRC*(1-selfSuf/100)).toFixed(1));
+
+  const sToBatt = battW>0 ? Math.min(battW,pvW) : 0;
+  const sToLoad = Math.min(pvW, loadW);
+  st('solar-to-home', fmtKW(Math.max(0,sToLoad-sToBatt))+' kW');
+  st('solar-to-batt', fmtKW(sToBatt)+' kW');
+  const gd=$('grid-dot2'), gl=$('grid-flow-lbl');
+  if(gridW<0){ st('solar-grid',fmtKW(Math.abs(gridW))+' kW → grid'); if(gd)gd.style.background='#22c55e'; if(gl)gl.style.color='#22c55e'; }
+  else       { st('solar-grid',fmtKW(gridW)+' kW ← grid'); if(gd)gd.style.background='rgba(248,113,113,.8)'; if(gl)gl.style.color='rgba(248,113,113,.9)'; }
+
+  const todayWh = parseFloat((prod?.data?.Productions?.Today||'0').replace(',',''));
+  st('solar-today-kwh', fmt(todayWh/1000)+' kWh');
+  st('solar-month-kwh', prod?.data?.Productions?.Month||'--');
+  st('solar-month-lbl', prod?.data?.Productions?.MonthLabel||'this month');
+  st('solar-today-aud', '$'+(prod?.data?.Earnings?.Today||'--')+' '+(prod?.data?.Earnings?.IsoCurrency||'AUD'));
+  st('solar-year-kwh',  prod?.data?.Productions?.Year||'--');
+
+  const sb=$('solar-badge'),sd=$('solar-dot');
+  if(sb){sb.className=online?'bdg live':'bdg';sb.textContent=online?'Live':'Offline';}
+  if(sd) sd.className='sdot '+(online?'live':'off');
+
+  // Battery
+  st('bat-soc',soc); sw('bat-bar',soc);
+  let bTxt, bChip, bDot;
+  if(battW>50){ bTxt=`Charging at ${fmtKW(battW)} kW`; bChip='background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2)'; bDot='sdot live'; st('bat-rate','+'+fmtKW(battW)); st('bat-time-lbl','Until full'); st('bat-time',(battW>0?((8.9*(1-soc/100))/(battW/1000)).toFixed(1):'--')+'h'); }
+  else if(battW<-50){ bTxt=`Discharging at ${fmtKW(Math.abs(battW))} kW`; bChip='background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2)'; bDot='sdot warn'; st('bat-rate','-'+fmtKW(Math.abs(battW))); st('bat-time-lbl','Until empty'); st('bat-time',(Math.abs(battW)>0?((8.9*soc/100)/(Math.abs(battW)/1000)).toFixed(1):'--')+'h'); }
+  else { bTxt='Idle'; bChip='background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)'; bDot='sdot warn'; st('bat-rate','~0'); st('bat-time','--'); st('bat-time-lbl','No change'); }
+  const bc=$('bat-chip'); if(bc) bc.style.cssText=bChip+';display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:.4px;margin-top:10px';
+  st('bat-status',bTxt); const bcd=$('bat-chip-dot'); if(bcd) bcd.className=bDot;
+  const bb=$('bat-badge'); if(bb){bb.className='bdg live';bb.textContent='Live';}
+
+  // Wattpilot
+  const wpKW=wpW/1000;
+  st('wp-kw',fmt(wpKW)); st('wp-kw2',fmt(wpKW)); sw('wp-bar',(wpKW/11)*100);
+  let wpShare=0;
+  if(wpW>0){ wpShare = gridW<=0 ? 100 : Math.round(Math.max(0,(wpW-Math.max(0,gridW))/wpW*100)); }
+  st('wp-solar-share', wpW>0?wpShare+'%':'--');
+  st('wp-grid-draw',   wpW>0?fmtKW(Math.max(0,Math.min(wpW,gridW)))+' kW':'--');
+  if(wpW<100){ st('wp-status-lbl','No EV connected / standby'); st('wp-mode','Standby'); st('wp-mode-lbl','Charger mode'); const wb=$('wp-badge'); if(wb){wb.className='bdg';wb.textContent='Standby';} }
+  else { st('wp-status-lbl','Charging now'); st('wp-mode',wpShare===100?'100% Solar ✓':'Solar + Grid mix'); st('wp-mode-lbl','Solar share mode'); const wb=$('wp-badge'); if(wb){wb.className='bdg live';wb.textContent='Live';} }
+}
+
+function buildForecastBars(forecast, containerId, h='60px') {
+  const cont=$(containerId); if(!cont||!forecast?.length) return;
+  const maxY=Math.max(...forecast.map(d=>d.ExpectedEnergyYield?.Value||0),1);
+  cont.style.display='flex'; cont.style.height=h;
+  cont.innerHTML=forecast.slice(0,7).map((day,i)=>{
+    const kWh=day.ExpectedEnergyYield?.Value; const pct=kWh?Math.round((kWh/maxY)*100):0;
+    const a=kWh?(0.2+(pct/100)*0.72):0.1; const glow=i===0?'box-shadow:0 0 8px rgba(245,158,11,.4)':'';
+    return`<div class="fbw"><div class="fb" style="height:${pct}%;background:rgba(245,158,11,${a.toFixed(2)});${glow}"></div><div class="fbl" style="${i===0?'color:var(--solar)':''}">${day.Label||''}</div>${kWh?`<div class="fbl" style="color:var(--dim);font-size:7px">${kWh}</div>`:''}</div>`;
+  }).join('');
+  return forecast[0]?.ExpectedEnergyYield?.Value;
+}
+
+function updateForecastSection(frWx) {
+  const fc=frWx?.data?.Forecast, cur=frWx?.data?.Current;
+  if(cur){ st('weather-temp',cur.Temperature?.Value||'--'); st('weather-desc',cur.TextSummary||'--'); const ins=cur.AdditionalData?.Insolation?.Value; st('insolation',ins?ins+' W/m²':'--'); st('weather-desc-sub',(cur.TextSummary||'')+'·'+( cur.Temperature?.Value||'--')+'°C'); }
+  const todayY=buildForecastBars(fc,'forecast-bars');
+  if(todayY){ st('today-fc-kwh',todayY); st('ev-today-fc',todayY+' kWh'); st('peak-window','Best EV/appliance window: 10am – 3pm'); st('app-win-1','🌞 10:00am – 12:00pm'); st('app-win-2','🚗 10:00am – 3:00pm'); st('app-win-3','🍽 11:00am – 1:00pm');
+    const surplus=Math.max(0,todayY-12).toFixed(1); st('ev-free-solar','Est. ~'+surplus+' kWh free solar today'); st('ev-surplus',surplus+' kWh est.'); st('ev-saving','~$'+((surplus*GRID_RATE_BUY)).toFixed(2)+' AUD'); }
+  const fb=$('fc-badge'); if(fb){fb.className='bdg live';fb.textContent='Live';}
+}
+
+function updateEVTab(flow,frWx) {
+  const wpW=flow.Wattpilots?.[0]?.P||0, gridW=flow.P_Grid||0;
+  const wpKW=wpW/1000; st('ev-wp-kw',fmt(wpKW)); sw('ev-wp-bar',(wpKW/11)*100);
+  const wpShare=wpW>0?(gridW<=0?100:Math.round(Math.max(0,(wpW-Math.max(0,gridW))/wpW*100))):0;
+  st('ev-solar-share',wpW>0?wpShare+'%':'Not charging'); st('ev-grid-draw',wpW>0?fmtKW(Math.max(0,Math.min(wpW,gridW)))+' kW':'0 kW');
+  st('ev-wp-mode',wpW>100?(wpShare===100?'100% Solar ✓':'Solar + Grid mix'):'Standby');
+  st('ev-charge-kw',fmt(wpKW));
+  buildForecastBars(frWx?.data?.Forecast,'forecast-bars-ev','80px');
+}
+
+/* ═══════════════════════════════════════════════════════
+   OPEN-METEO WEATHER (for Schedule tab)
+═══════════════════════════════════════════════════════ */
+const WMO_ICONS={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌦️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const WMO_TEXT={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Heavy showers',82:'Violent showers',95:'Thunderstorm',96:'Thunderstorm+hail',99:'Severe storm'};
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+async function fetchWeather() {
+  try {
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max&timezone=${encodeURIComponent(LOCATION.tz)}&forecast_days=7`);
+    const d=await r.json();
+    renderWxNow(d.current,d.daily);
+    renderWxForecast(d.daily);
+  } catch(e){ console.warn('Weather failed:',e); }
+}
+
+function renderWxNow(cur,daily) {
+  $('wx-loading').style.display='none'; $('wx-now').style.display='';
+  const code=cur.weather_code;
+  st('wx-temp',Math.round(cur.temperature_2m));
+  st('wx-feel',Math.round(cur.apparent_temperature));
+  st('wx-desc',WMO_TEXT[code]||'');
+  st('wx-rain',(daily.precipitation_sum[0]).toFixed(1)+' mm');
+  st('wx-wind',Math.round(cur.wind_speed_10m));
+  st('wx-hi',Math.round(daily.temperature_2m_max[0])+'°');
+  st('wx-lo',Math.round(daily.temperature_2m_min[0])+'°');
+  st('wx-uv',daily.uv_index_max[0].toFixed(1));
+  $('wx-icon').textContent=WMO_ICONS[code]||'🌡️';
+  const t=cur.temperature_2m;
+  $('wx-temp').style.color=t>=35?'#f87171':t>=28?'#f59e0b':t>=18?'#60a5fa':'#a78bfa';
+}
+
+function renderWxForecast(daily) {
+  $('wx-fc-loading').style.display='none';
+  const cont=$('wx-fc-days'); cont.style.display='grid';
+  cont.innerHTML=Array.from({length:7},(_,i)=>{
+    const dt=new Date(daily.time[i]+'T00:00:00');
+    const code=daily.weather_code[i], hi=Math.round(daily.temperature_2m_max[i]), lo=Math.round(daily.temperature_2m_min[i]), rain=daily.precipitation_sum[i];
+    const dow=i===0?'Today':DOW[dt.getDay()];
+    return`<div class="dfc${i===0?' today':''}"><div class="dfc-day">${dow}</div><div class="dfc-icon">${WMO_ICONS[code]||'🌡️'}</div><div class="dfc-hi">${hi}°</div><div class="dfc-lo">${lo}°</div>${rain>0.1?`<div class="dfc-rain">${rain.toFixed(1)}mm</div>`:''}</div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   CALENDAR COLOURS
+═══════════════════════════════════════════════════════ */
+const CAL_COLOURS={
+  'Jabbi':         {dot:'#a0a0a0',bg:'rgba(160,160,160,.12)',tx:'#c8c8c8'},
+  'Jared - JBTA':  {dot:'#cca6ac',bg:'rgba(204,166,172,.12)',tx:'#e8c4c8'},
+  'JABBA TRAINING':{dot:'#fa573c',bg:'rgba(250,87,60,.12)',  tx:'#fa8c78'},
+  'Abs - Training':{dot:'#fad165',bg:'rgba(250,209,101,.12)',tx:'#fad165'},
+  'Abs - Work':    {dot:'#cd74e6',bg:'rgba(205,116,230,.12)',tx:'#e0a0f0'},
+  'Abi Work':      {dot:'#fad165',bg:'rgba(250,209,101,.12)',tx:'#fad165'},
+  'Otis':          {dot:'#fbe983',bg:'rgba(251,233,131,.12)',tx:'#fbe983'},
+};
+
+/* Pre-loaded real events from Google Calendar (updated 25 Mar 2026) */
+const STATIC_EVENTS=[
+  {date:'2026-03-25',start:'14:00',end:'15:00',title:'🏈 AFL Member On-Sale OPEN',sub:'Essendon v Collingwood — ANZAC Day, MCG',cal:'Jared - JBTA',allDay:false},
+  {date:'2026-03-25',start:'19:00',end:'19:45',title:'Abi sax',sub:'Saxophone lesson',cal:'Jabbi',allDay:false},
+  {date:'2026-03-27',start:'07:46',end:'07:58',title:'Claude test event',sub:'11 Alluvial Street, Wangaratta',cal:'Jabbi',allDay:false},
+  {date:'2026-03-30',allDay:true,title:'🗑 Bins out',sub:'Green + rubbish',cal:'Jabbi'},
+  {date:'2026-03-30',start:'19:00',end:'20:00',title:'Abi Saxophone',sub:'Recurring weekly',cal:'Jabbi',allDay:false},
+  {date:'2026-03-31',start:'19:30',end:'21:30',title:'Abi band',sub:'Fortnightly band rehearsal',cal:'Jabbi',allDay:false},
+  {date:'2026-04-03',dateEnd:'2026-04-07',allDay:true,title:'Porepunkah / Bright',sub:'Away — 4 nights',cal:'Jabbi',multiDay:true},
+  {date:'2026-04-05',start:'17:00',end:'20:30',title:'Family Dinner',sub:'Lea & Rob — declined',cal:'Jabbi',allDay:false},
+  {date:'2026-04-06',allDay:true,title:'DAD - Monthly Call',sub:'Reminder',cal:'Jared - JBTA'},
+  {date:'2026-04-07',start:'09:00',end:'09:30',title:'Naturally Well Payroll',sub:'Fortnightly payroll run',cal:'Jared - JBTA',allDay:false},
+  {date:'2026-04-08',start:'14:00',end:'15:00',title:'Monthly Tax Update Webinar',sub:'CPD — April session',cal:'Jared - JBTA',allDay:false},
+  {date:'2026-04-10',start:'09:00',end:'17:00',title:'Rob & Lea looking after Otis',sub:'Otis with grandparents all day',cal:'Jared - JBTA',allDay:false},
+  {date:'2026-04-17',start:'10:00',end:'11:00',title:'Coaching Call — Dave McNeill',sub:'Monthly triathlon coaching',cal:'Jabbi',allDay:false},
+];
+
+function ymd(dt){return dt.toISOString().slice(0,10);}
+function addDays(dt,n){const r=new Date(dt);r.setDate(r.getDate()+n);return r;}
+function parseFmt(t){if(!t)return'';const[h,m]=t.split(':').map(Number);const ap=h>=12?'pm':'am';return`${h%12||12}:${String(m).padStart(2,'0')}${ap}`;}
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
+
+function renderCalendar(events){
+  const now=new Date(), todayYMD=ymd(now);
+  const dow=now.getDay(), daysToSun=dow===0?0:7-dow, sundayYMD=ymd(addDays(now,daysToSun));
+
+  st('today-date-label',now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'}));
+  st('week-range-label',addDays(now,1).toLocaleDateString('en-AU',{day:'numeric',month:'short'})+' → '+addDays(now,daysToSun).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}));
+
+  // TODAY
+  const todayEvs=events.filter(e=>e.date===todayYMD).sort((a,b)=>{if(a.allDay&&!b.allDay)return -1;if(!a.allDay&&b.allDay)return 1;return(a.start||'00:00').localeCompare(b.start||'00:00');});
+  const tel=$('today-events');
+  tel.innerHTML=todayEvs.length===0?'<div class="ev-no">🌿 Nothing scheduled today — enjoy the quiet!</div>':todayEvs.map(e=>{const c=CAL_COLOURS[e.cal]||{dot:'#888',bg:'rgba(136,136,136,.1)',tx:'#aaa'};const tl=e.allDay?'All day':`${parseFmt(e.start)} – ${parseFmt(e.end)}`;return`<div class="ev-row"><div class="ev-cal-dot" style="background:${c.dot};box-shadow:0 0 5px ${c.dot}40"></div><div style="flex:1"><div class="ev-time">${tl}</div><div class="ev-title">${e.title}</div>${e.sub?`<div class="ev-sub">${e.sub}</div>`:''}<span class="ev-cal-tag" style="background:${c.bg};color:${c.tx};border:1px solid ${c.dot}30">${e.cal}</span></div></div>`;}).join('');
+  const tb=$('today-cal-badge');if(tb){tb.className='bdg gcal';tb.textContent=todayEvs.length>0?`${todayEvs.length} event${todayEvs.length>1?'s':''}`:' Free day';}
+
+  // WEEK
+  const wrows=[];
+  for(let i=1;i<=Math.min(daysToSun,6);i++){
+    const dt=addDays(now,i),y=ymd(dt);
+    wrows.push({label:dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}),evs:events.filter(e=>!e.multiDay&&e.date===y).sort((a,b)=>(a.start||'').localeCompare(b.start||''))});
+  }
+  const wel=$('week-events');
+  wel.innerHTML=wrows.length===0?'<div class="ev-no">Nothing until next week 🌙</div>':wrows.map(r=>{const has=r.evs.length>0;return`<div class="wd-row${has?' has-ev':''}"><div class="wd-date">${r.label}</div><div class="wd-events">${has?r.evs.map(e=>{const c=CAL_COLOURS[e.cal]||{dot:'#888'};return`<div class="wd-ev"><div class="wd-dot" style="background:${c.dot}"></div><span>${e.title}</span><span class="wd-ev-time">${e.allDay?'All day':parseFmt(e.start)}</span></div>`;}).join(''):'<div class="wd-none">Nothing on</div>'}</div></div>`;}).join('');
+  const wb=$('week-cal-badge');if(wb){wb.className='bdg gcal';const wc=wrows.reduce((a,r)=>a+r.evs.length,0);wb.textContent=wc>0?`${wc} event${wc>1?'s':''}`:' Quiet week';}
+
+  // AHEAD
+  const limit=ymd(addDays(now,30));
+  const multi=events.filter(e=>(e.multiDay||e.dateEnd)&&e.date>todayYMD&&e.date<=limit).sort((a,b)=>a.date.localeCompare(b.date));
+  const ael=$('ahead-events');
+  ael.innerHTML=multi.length===0?'<div class="ev-no">No multi-day events in the next 30 days</div>':multi.map(e=>{const c=CAL_COLOURS[e.cal]||{dot:'#888'};const s=new Date(e.date+'T00:00:00'),en=e.dateEnd?new Date(e.dateEnd+'T00:00:00'):null;const nights=en?daysBetween(e.date,e.dateEnd):1;const sf=s.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),ef=en?en.toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'';return`<div class="ahead-row"><div style="width:8px;height:8px;border-radius:50%;background:${c.dot};box-shadow:0 0 5px ${c.dot}50;flex-shrink:0"></div><div style="flex:1"><div class="ahead-title">${e.title}</div>${e.sub?`<div class="ahead-dur">${e.sub}</div>`:''}</div><div style="text-align:right"><div class="ahead-span">${sf}${ef?' – '+ef:''}</div><div class="ahead-pill">${nights} night${nights>1?'s':''}</div></div></div>`;}).join('');
+  const ab=$('ahead-cal-badge');if(ab){ab.className='bdg gcal';ab.textContent=multi.length>0?`${multi.length} coming up`:' None';}
+}
+
+/* ═══════════════════════════════════════════════════════
+   GOOGLE CALENDAR OAUTH2
+   ─────────────────────────────────────────────────────
+   Once you have a Client ID (see PDF checklist):
+   1. Replace GOOGLE_CLIENT_ID above
+   2. Add your GitHub Pages URL as Authorized Origin
+   3. Tap "Connect Calendar" on the Schedule tab
+═══════════════════════════════════════════════════════ */
+let tokenClient, gapiReady=false, gisReady=false;
+const GCAL_TOKEN_KEY = 'homehub_gcal_token';
+function saveGcalToken(t){const expiry=Date.now()+((t.expires_in||3600)*1000)-60000;try{localStorage.setItem(GCAL_TOKEN_KEY,JSON.stringify({...t,expiry}));}catch(e){}}
+function loadGcalToken(){try{const raw=localStorage.getItem(GCAL_TOKEN_KEY);if(!raw)return null;const t=JSON.parse(raw);if(Date.now()>t.expiry){localStorage.removeItem(GCAL_TOKEN_KEY);return null;}return t;}catch(e){return null;}}
+function gapiLoaded(){gapi.load('client',async()=>{await gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']});gapiReady=true;checkAutoAuth();});}
+function gisLoaded(){if(!GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE')){tokenClient=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/calendar.readonly',callback:async(r)=>{if(r.error){localStorage.removeItem(GCAL_TOKEN_KEY);return;}saveGcalToken(r);gapi.client.setToken(r);$('gcal-banner').style.display='none';await loadLiveCalendar();setTimeout(()=>tokenClient.requestAccessToken({prompt:''}),((r.expires_in||3600)-120)*1000);}});gisReady=true;checkAutoAuth();}}
+function checkAutoAuth(){if(!gapiReady||!gisReady)return;const saved=loadGcalToken();if(saved){gapi.client.setToken(saved);$('gcal-banner').style.display='none';loadLiveCalendar();const msLeft=saved.expiry-Date.now();if(msLeft>120000)setTimeout(()=>tokenClient.requestAccessToken({prompt:''}),msLeft-120000);else tokenClient.requestAccessToken({prompt:''});}}
+function initGoogleAuth(){if(GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE')){alert('Add your Google Client ID to the dashboard first.\nSee the Google API Setup PDF for instructions.\n\nFor now, showing your pre-loaded calendar events! 📅');return;}const saved=loadGcalToken();if(saved){gapi.client.setToken(saved);$('gcal-banner').style.display='none';loadLiveCalendar();return;}tokenClient.requestAccessToken({prompt:'consent'});}
+
+const CAL_IDS_MAP={'dt3ujpeoh1tbqoinkssea4k3eg@group.calendar.google.com':'Jabbi','tg7pit84io5tho687lem8spk0qf5nk5h@import.calendar.google.com':'Jared - JBTA','26r1t5t426iv3c7mqdfo5f3rv06fe6ji@import.calendar.google.com':'JABBA TRAINING','8l964pp79dfiij7vei9tpp9n80@group.calendar.google.com':'Abs - Training','abi.hyndman@gmail.com':'Abs - Work','3b2af3a63fce94bec1eaab1542dfbcf8aab239007ed7a7e670f63757e0492c3c@group.calendar.google.com':'Abi Work','1dc5c206b57454a02024cd16a3fb792928ff805c9ae819f7041b5d5d1fa6bfcb@group.calendar.google.com':'Otis'};
+
+async function loadLiveCalendar(){
+  const tMin=new Date().toISOString(), tMax=new Date(Date.now()+31*86400000).toISOString(), evs=[];
+  for(const[id,name] of Object.entries(CAL_IDS_MAP)){try{const r=await gapi.client.calendar.events.list({calendarId:id,timeMin:tMin,timeMax:tMax,singleEvents:true,orderBy:'startTime',maxResults:50});for(const item of r.result.items||[]){const sd=item.start.date||item.start.dateTime?.slice(0,10),ed=item.end.date||item.end.dateTime?.slice(0,10);const allDay=!!item.start.date,spans=allDay&&daysBetween(sd,ed)>1;const st2=item.start.dateTime?new Date(item.start.dateTime).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}):null,et=item.end.dateTime?new Date(item.end.dateTime).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}):null;evs.push({date:sd,dateEnd:spans?new Date(new Date(ed)-86400000).toISOString().slice(0,10):null,start:st2,end:et,title:item.summary||'(No title)',sub:(item.location||item.description||'').slice(0,80),cal:name,allDay,multiDay:spans});}}catch(e){console.warn('Cal fetch failed:',id,e.message);}}
+  renderCalendar(evs);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SMART NOTIFICATIONS
+═══════════════════════════════════════════════════════ */
+const notifCooldown={};
+function checkSmartNotifications(flow,frWx){
+  if(Notification.permission!=='granted') return;
+  const now=Date.now(), pvKW=(flow.P_PV||0)/1000, soc=flow.SOC||0, wpW=flow.Wattpilots?.[0]?.P||0, hour=new Date().getHours(), isPeak=hour>=10&&hour<15;
+  if($('tog-peak')?.checked&&pvKW>=3){const k='peak-'+new Date().toDateString();if(!notifCooldown[k]||now-notifCooldown[k]>3600000){notifCooldown[k]=now;sendNotification('🌅 Solar Peak Active — Home Hub',`Generating ${fmt(pvKW)} kW right now. Great time for washer, dryer, or dishwasher!`,'peak-start');}}
+  if($('tog-ev')?.checked&&isPeak&&pvKW>=2&&wpW<100){const k='ev-'+new Date().toDateString()+'-'+hour;if(!notifCooldown[k]||now-notifCooldown[k]>3600000){notifCooldown[k]=now;sendNotification('🚗 EV Not Charging — Home Hub',`Generating ${fmt(pvKW)} kW but Wattpilot shows 0 W. Plug in the Tesla to charge free from solar!`,'ev-check');}}
+  if($('tog-batt')?.checked&&soc>=95&&pvKW>=1){const k='batt-'+new Date().toDateString();if(!notifCooldown[k]||now-notifCooldown[k]>3600000){notifCooldown[k]=now;sendNotification('🔋 Battery Full — Home Hub',`Battery at ${soc}% and solar still producing ${fmt(pvKW)} kW. Run appliances or charge EV now!`,'batt-full');}}
+}
+
+/* ═══════════════════════════════════════════════════════
+   SERVICE WORKER & PUSH
+═══════════════════════════════════════════════════════ */
+let swReg=null;
+async function registerSW(){if(!('serviceWorker'in navigator))return;try{swReg=await navigator.serviceWorker.register('./sw.js');}catch(e){console.warn('[HomeHub] SW:',e);}}
+async function requestNotifPermission(){if(!('Notification'in window)){alert('Try Chrome on Android, or Safari on iPhone (iOS 16.4+, added to Home Screen).');return;}const p=await Notification.requestPermission();updateNotifBadge(p);if(p==='granted'){$('perm-banner').classList.add('hidden');scheduleTimedNotifications();logNotif('✅','Notifications enabled.');}}
+function updateNotifBadge(p){const b=$('notif-status-badge');if(!b)return;if(p==='granted'){b.className='bdg live';b.textContent='Enabled';$('perm-banner')?.classList.add('hidden');}else if(p==='denied'){b.className='bdg';b.style.color='#f87171';b.textContent='Blocked';$('perm-banner')?.classList.add('hidden');}else{b.className='bdg mock';b.textContent='Not set';}}
+function sendNotification(title,body,tag){if(Notification.permission!=='granted')return;if(swReg?.active)swReg.active.postMessage({type:'SCHEDULE_NOTIFICATION',title,body,tag,delay:0});else new Notification(title,{body,tag});$('notif-icon').textContent=title.slice(0,2);$('notif-msg').textContent=body;$('notif-bar').classList.remove('hidden');logNotif('🔔',`[${title}] ${body}`);}
+function sendTestNotification(){if(Notification.permission!=='granted'){requestNotifPermission();return;}const pvKW=((liveData.flow?.P_PV||0)/1000).toFixed(1),soc=liveData.flow?.SOC||'--';sendNotification('🏠 Home Hub Test',`Live data working! Solar: ${pvKW} kW · Battery: ${soc}% · Notifications active.`,'test');}
+const scheduledTimers=[];
+function msUntil(h,m=0){const n=new Date(),t=new Date(n);t.setHours(h,m,0,0);if(t<=n)t.setDate(t.getDate()+1);return t-n;}
+function scheduleTimedNotifications(){scheduledTimers.forEach(clearTimeout);scheduledTimers.length=0;if($('tog-daily')?.checked)scheduledTimers.push(setTimeout(async()=>{await fetchFronius();const fc=liveData.frWx?.data?.Forecast?.[0]?.ExpectedEnergyYield?.Value||'--',temp=liveData.frWx?.data?.Current?.Temperature?.Value||'--';sendNotification('☀️ Home Hub — Daily Briefing',`Forecast: ${fc} kWh today · ${temp}°C · Best window 10am–3pm. Run washer, dryer &amp; charge EV for free!`,'daily');scheduleTimedNotifications();},msUntil(8)));if($('tog-eve')?.checked)scheduledTimers.push(setTimeout(async()=>{await fetchFronius();const w=parseFloat((liveData.prod?.data?.Productions?.Today||'0').replace(',','')),a=liveData.prod?.data?.Earnings?.Today||'0.00',s=liveData.flow?.SOC||'--';sendNotification('🌇 Evening Wrap-Up — Home Hub',`Today: ${(w/1000).toFixed(1)} kWh generated · $${a} feed-in · Battery: ${s}%`,'evening');},msUntil(18)));}
+const notifLog=[];
+function logNotif(icon,msg){const t=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});notifLog.unshift({icon,msg,t});const el=$('notif-log');if(!el||!notifLog.length)return;el.innerHTML=notifLog.map(n=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surf);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px"><span style="font-size:16px;flex-shrink:0">${n.icon}</span><div style="flex:1"><div style="font-size:12px;color:rgba(255,255,255,.8)">${n.msg}</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);margin-top:3px">${n.t}</div></div></div>`).join('');}
+
+/* ═══════════════════════════════════════════════════════
+   TESLA STUB — uncomment and fill in once you have tokens
+   See setup guide PDF for steps
+═══════════════════════════════════════════════════════ */
+/*
+const TESLA_TOKEN = 'YOUR_ACCESS_TOKEN';
+const TESLA_VIN   = 'YOUR_VIN';
+async function fetchTesla() {
+  const r = await fetch(
+    `https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles/${TESLA_VIN}/vehicle_data?endpoints=charge_state`,
+    { headers: { Authorization: `Bearer ${TESLA_TOKEN}` } }
+  );
+  const d = await r.json();
+  const cs = d.response.charge_state;
+  // update EV tab DOM here
+  // if (!Charging during peak) sendNotification(...)
+}
+setInterval(fetchTesla, 60000);
+*/
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+window.addEventListener('load', async () => {
+  tick(); setInterval(tick, 1000);
+  await registerSW();
+
+  // Notifications
+  const perm = Notification.permission;
+  updateNotifBadge(perm);
+  if(perm==='granted'){ $('perm-banner').classList.add('hidden'); scheduleTimedNotifications(); }
+  else if(perm==='denied'){ $('perm-banner').classList.add('hidden'); }
+  document.querySelectorAll('.toggle input').forEach(el=>el.addEventListener('change',scheduleTimedNotifications));
+
+  // Fronius — live data
+  await fetchFronius();
+  setInterval(fetchFronius, 30000);
+
+  // Open-Meteo weather
+  fetchWeather();
+  setInterval(fetchWeather, 30*60*1000);
+
+  // Calendar — pre-load static, live when OAuth2 connected
+  renderCalendar(STATIC_EVENTS);
+  if(GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE')){
+    const b=$('gcal-banner');
+    if(b) b.innerHTML=`<span style="font-size:18px;flex-shrink:0">📅</span><div class="gb-msg">Showing pre-loaded calendar events (updated 25 Mar 2026). <span style="color:var(--dim)">Connect Google Calendar for live sync — see the PDF setup guide.</span></div><button class="gcal-connect-btn" onclick="initGoogleAuth()">Connect Calendar</button>`;
+  }
+});
+</script>
+
+<!-- Google Calendar APIs — only activate once OAuth2 Client ID is configured -->
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
