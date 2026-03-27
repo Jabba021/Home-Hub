@@ -688,7 +688,7 @@ const GRID_RATE_SELL = 0.055;  // AUD/kWh feed-in — update to your plan
 const LOCATION = { name:'Violet Town, VIC', lat:-36.6219, lon:145.7184, tz:'Australia/Melbourne' };
 
 // Google Calendar OAuth2 — replace with your Client ID once set up
-const GOOGLE_CLIENT_ID = '805271819761-4mlok6nkpv7l39nnop6a1stv1ufgk83j.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 let liveData = {};
 
@@ -1009,82 +1009,34 @@ function logNotif(icon,msg){const t=new Date().toLocaleTimeString('en-AU',{hour:
 /* ═══════════════════════════════════════════════════════
    TESLA FLEET API — LIVE
 ═══════════════════════════════════════════════════════ */
-const TESLA_CLIENT_ID     = 'ed279b0c-a7fb-49df-9070-8c1e5d926323';
-const TESLA_CLIENT_SECRET = 'ta-secret.ZPWr6hu8$1jWtjz5';
-const TESLA_REFRESH_TOKEN = 'NA_b8321bd08e97d89ddbe5802955620db569d6230b5ebdc586f632a89281319d32';
-const TESLA_VIN           = 'LRW3F7EK7PC946908';
-const TESLA_TOKEN_KEY     = 'homehub_tesla_token';
+// Tesla credentials and token management are handled in the Cloudflare Worker
+// See: https://homehub-tesla.jared-38b.workers.dev/
 
-// Tesla tries NA endpoint first, falls back to EU (for Giga Shanghai vehicles sold in AU)
-const TESLA_ENDPOINTS = [
-  'https://fleet-api.prd.na.vn.cloud.tesla.com',
-  'https://fleet-api.prd.eu.vn.cloud.tesla.com',
-];
-let teslaEndpoint = localStorage.getItem('homehub_tesla_endpoint') || TESLA_ENDPOINTS[0];
-
-function saveTeslaToken(t) {
-  const expiry = Date.now() + ((t.expires_in||28800)*1000) - 60000;
-  try { localStorage.setItem(TESLA_TOKEN_KEY, JSON.stringify({...t, expiry})); } catch(e){}
-}
-function loadTeslaToken() {
-  try {
-    const raw = localStorage.getItem(TESLA_TOKEN_KEY);
-    if (!raw) return null;
-    const t = JSON.parse(raw);
-    if (Date.now() > t.expiry) { localStorage.removeItem(TESLA_TOKEN_KEY); return null; }
-    return t;
-  } catch(e) { return null; }
-}
-
-async function refreshTeslaToken() {
-  const r = await fetch('https://auth.tesla.com/oauth2/v3/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type:    'refresh_token',
-      client_id:     TESLA_CLIENT_ID,
-      client_secret: TESLA_CLIENT_SECRET,
-      refresh_token: TESLA_REFRESH_TOKEN,
-    })
-  });
-  if (!r.ok) throw new Error('Tesla token refresh failed: ' + r.status);
-  const t = await r.json();
-  saveTeslaToken(t);
-  return t.access_token;
-}
-
-async function getTeslaToken() {
-  const saved = loadTeslaToken();
-  if (saved) return saved.access_token;
-  return await refreshTeslaToken();
-}
+// All Tesla API calls go through the Cloudflare Worker
+// which handles auth server-side, bypassing CORS restrictions
+const TESLA_WORKER_URL = 'https://homehub-tesla.jared-38b.workers.dev/';
 
 async function fetchTesla() {
   try {
-    const token = await getTeslaToken();
+    const r = await fetch(TESLA_WORKER_URL, { mode: 'cors' });
 
-    // Try endpoints until one works
-    let data = null;
-    for (const ep of [teslaEndpoint, ...TESLA_ENDPOINTS.filter(e => e !== teslaEndpoint)]) {
-      try {
-        const r = await fetch(`${ep}/api/1/vehicles/${TESLA_VIN}/vehicle_data?endpoints=charge_state`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (r.status === 401) { localStorage.removeItem(TESLA_TOKEN_KEY); return; }
-        if (r.status === 408) { updateTeslaAsleep(); return; } // car is asleep
-        if (!r.ok) continue;
-        data = await r.json();
-        // Save working endpoint
-        if (ep !== teslaEndpoint) {
-          teslaEndpoint = ep;
-          localStorage.setItem('homehub_tesla_endpoint', ep);
-        }
-        break;
-      } catch(_) {}
+    if (!r.ok) {
+      console.warn('[HomeHub] Tesla worker responded:', r.status);
+      updateTeslaOffline();
+      return;
     }
-    if (!data) { updateTeslaOffline(); return; }
 
-    const cs = data.response?.charge_state;
+    const json = await r.json();
+
+    if (!json.ok) {
+      // Worker returned an error from Tesla
+      if (json.sleeping) { updateTeslaAsleep(); return; }
+      console.warn('[HomeHub] Tesla worker error:', json.error);
+      updateTeslaOffline();
+      return;
+    }
+
+    const cs = json.data;
     if (!cs) { updateTeslaOffline(); return; }
 
     updateTeslaCards(cs);
