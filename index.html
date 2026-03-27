@@ -368,12 +368,12 @@ footer{text-align:center;padding:28px 24px 32px;font-family:'JetBrains Mono',mon
      TAB 2 · ELECTRIC VEHICLE
 ════════════════════════════════════════════════════════════════ -->
 <div id="tab-ev" class="tab-panel">
-  <div class="sec-lbl">🚗 &nbsp;Tesla — Fleet API &nbsp;<span class="bdg mock">Mock — connect API to go live</span></div>
+  <div class="sec-lbl">🚗 &nbsp;Tesla — Fleet API</div>
   <div class="grid g2">
     <div class="card cev">
       <div class="ch">
-        <div class="ct"><div class="ci" style="background:rgba(96,165,250,.14)">🚗</div><div><div class="cn">Tesla</div><div class="cs">Tesla Fleet API</div></div></div>
-        <div style="display:flex;align-items:center;gap:7px"><div class="bdg mock">Mock</div><div class="sdot warn"></div></div>
+        <div class="ct"><div class="ci" style="background:rgba(96,165,250,.14)">🚗</div><div><div class="cn">Tesla</div><div class="cs">Tesla Fleet API — Live</div></div></div>
+        <div style="display:flex;align-items:center;gap:7px"><span class="bdg live" id="tesla-badge">Live</span><div class="sdot live" id="tesla-dot"></div></div>
       </div>
       <div style="display:flex;justify-content:center;margin:8px 0 14px">
         <svg width="220" height="72" viewBox="0 0 220 72" fill="none">
@@ -385,18 +385,23 @@ footer{text-align:center;padding:28px 24px 32px;font-family:'JetBrains Mono',mon
           <circle cx="158" cy="57" r="12" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.4)" stroke-width="1.5"/>
           <circle cx="158" cy="57" r="5.5" fill="rgba(96,165,250,.22)"/>
           <rect x="42" y="56" width="76" height="3.5" rx="1.75" fill="rgba(96,165,250,.08)"/>
-          <rect x="42" y="56" width="53" height="3.5" rx="1.75" fill="#60a5fa" style="filter:drop-shadow(0 0 3px #60a5fa)"/>
+          <rect id="tesla-soc-bar" x="42" y="56" width="53" height="3.5" rx="1.75" fill="#60a5fa" style="filter:drop-shadow(0 0 3px #60a5fa)"/>
         </svg>
       </div>
       <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
-        <div><div class="bv" style="color:var(--ev)">70<span class="u">%</span></div><div class="vl">Battery level</div></div>
-        <div style="flex:1;min-width:80px;padding-bottom:8px"><div class="pb" style="height:8px"><div class="pf ef" style="width:70%"></div></div></div>
+        <div>
+          <div class="bv" style="color:var(--ev)"><span id="tesla-soc">--</span><span class="u">%</span></div>
+          <div class="vl">Battery level</div>
+        </div>
+        <div style="flex:1;min-width:80px;padding-bottom:8px">
+          <div class="pb" style="height:8px"><div class="pf ef" id="tesla-soc-progress" style="width:0%"></div></div>
+        </div>
       </div>
       <div class="ms">
-        <div class="msi"><div class="v" style="color:var(--ev)">298</div><div class="l">km range</div></div>
-        <div class="msi"><div class="v" style="color:#22c55e">+<span id="ev-charge-kw">7.4</span> kW</div><div class="l">Charging</div></div>
-        <div class="msi"><div class="v">90%</div><div class="l">Limit set</div></div>
-        <div class="msi"><div class="v">~1.8h</div><div class="l">To limit</div></div>
+        <div class="msi"><div class="v" style="color:var(--ev)" id="tesla-range">--</div><div class="l">km range</div></div>
+        <div class="msi"><div class="v" id="tesla-charge-power" style="color:#22c55e">--</div><div class="l" id="tesla-charge-label">Charge state</div></div>
+        <div class="msi"><div class="v" id="tesla-limit">--%</div><div class="l">Limit set</div></div>
+        <div class="msi"><div class="v" id="tesla-time-to-full">--</div><div class="l" id="tesla-time-label">To limit</div></div>
       </div>
     </div>
     <div class="card cwp">
@@ -683,7 +688,7 @@ const GRID_RATE_SELL = 0.055;  // AUD/kWh feed-in — update to your plan
 const LOCATION = { name:'Violet Town, VIC', lat:-36.6219, lon:145.7184, tz:'Australia/Melbourne' };
 
 // Google Calendar OAuth2 — replace with your Client ID once set up
-const GOOGLE_CLIENT_ID = '805271819761-4mlok6nkpv7l39nnop6a1stv1ufgk83j.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 let liveData = {};
 
@@ -1002,24 +1007,176 @@ const notifLog=[];
 function logNotif(icon,msg){const t=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});notifLog.unshift({icon,msg,t});const el=$('notif-log');if(!el||!notifLog.length)return;el.innerHTML=notifLog.map(n=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surf);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px"><span style="font-size:16px;flex-shrink:0">${n.icon}</span><div style="flex:1"><div style="font-size:12px;color:rgba(255,255,255,.8)">${n.msg}</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);margin-top:3px">${n.t}</div></div></div>`).join('');}
 
 /* ═══════════════════════════════════════════════════════
-   TESLA STUB — uncomment and fill in once you have tokens
-   See setup guide PDF for steps
+   TESLA FLEET API — LIVE
 ═══════════════════════════════════════════════════════ */
-/*
-const TESLA_TOKEN = 'YOUR_ACCESS_TOKEN';
-const TESLA_VIN   = 'YOUR_VIN';
-async function fetchTesla() {
-  const r = await fetch(
-    `https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles/${TESLA_VIN}/vehicle_data?endpoints=charge_state`,
-    { headers: { Authorization: `Bearer ${TESLA_TOKEN}` } }
-  );
-  const d = await r.json();
-  const cs = d.response.charge_state;
-  // update EV tab DOM here
-  // if (!Charging during peak) sendNotification(...)
+const TESLA_CLIENT_ID     = 'ed279b0c-a7fb-49df-9070-8c1e5d926323';
+const TESLA_CLIENT_SECRET = 'ta-secret.ZPWr6hu8$1jWtjz5';
+const TESLA_REFRESH_TOKEN = 'NA_b8321bd08e97d89ddbe5802955620db569d6230b5ebdc586f632a89281319d32';
+const TESLA_VIN           = 'LRW3F7EK7PC946908';
+const TESLA_TOKEN_KEY     = 'homehub_tesla_token';
+
+// Tesla tries NA endpoint first, falls back to EU (for Giga Shanghai vehicles sold in AU)
+const TESLA_ENDPOINTS = [
+  'https://fleet-api.prd.na.vn.cloud.tesla.com',
+  'https://fleet-api.prd.eu.vn.cloud.tesla.com',
+];
+let teslaEndpoint = localStorage.getItem('homehub_tesla_endpoint') || TESLA_ENDPOINTS[0];
+
+function saveTeslaToken(t) {
+  const expiry = Date.now() + ((t.expires_in||28800)*1000) - 60000;
+  try { localStorage.setItem(TESLA_TOKEN_KEY, JSON.stringify({...t, expiry})); } catch(e){}
 }
-setInterval(fetchTesla, 60000);
-*/
+function loadTeslaToken() {
+  try {
+    const raw = localStorage.getItem(TESLA_TOKEN_KEY);
+    if (!raw) return null;
+    const t = JSON.parse(raw);
+    if (Date.now() > t.expiry) { localStorage.removeItem(TESLA_TOKEN_KEY); return null; }
+    return t;
+  } catch(e) { return null; }
+}
+
+async function refreshTeslaToken() {
+  const r = await fetch('https://auth.tesla.com/oauth2/v3/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type:    'refresh_token',
+      client_id:     TESLA_CLIENT_ID,
+      client_secret: TESLA_CLIENT_SECRET,
+      refresh_token: TESLA_REFRESH_TOKEN,
+    })
+  });
+  if (!r.ok) throw new Error('Tesla token refresh failed: ' + r.status);
+  const t = await r.json();
+  saveTeslaToken(t);
+  return t.access_token;
+}
+
+async function getTeslaToken() {
+  const saved = loadTeslaToken();
+  if (saved) return saved.access_token;
+  return await refreshTeslaToken();
+}
+
+async function fetchTesla() {
+  try {
+    const token = await getTeslaToken();
+
+    // Try endpoints until one works
+    let data = null;
+    for (const ep of [teslaEndpoint, ...TESLA_ENDPOINTS.filter(e => e !== teslaEndpoint)]) {
+      try {
+        const r = await fetch(`${ep}/api/1/vehicles/${TESLA_VIN}/vehicle_data?endpoints=charge_state`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (r.status === 401) { localStorage.removeItem(TESLA_TOKEN_KEY); return; }
+        if (r.status === 408) { updateTeslaAsleep(); return; } // car is asleep
+        if (!r.ok) continue;
+        data = await r.json();
+        // Save working endpoint
+        if (ep !== teslaEndpoint) {
+          teslaEndpoint = ep;
+          localStorage.setItem('homehub_tesla_endpoint', ep);
+        }
+        break;
+      } catch(_) {}
+    }
+    if (!data) { updateTeslaOffline(); return; }
+
+    const cs = data.response?.charge_state;
+    if (!cs) { updateTeslaOffline(); return; }
+
+    updateTeslaCards(cs);
+    checkTeslaNotifications(cs);
+
+  } catch(e) {
+    console.warn('[HomeHub] Tesla fetch failed:', e.message);
+    updateTeslaOffline();
+  }
+}
+
+function updateTeslaCards(cs) {
+  const soc         = cs.battery_level || 0;
+  const rangeKm     = Math.round((cs.est_battery_range || 0) * 1.60934);
+  const chargeState = cs.charging_state || 'Unknown'; // 'Charging', 'Stopped', 'Disconnected', 'Complete'
+  const chargeKw    = (cs.charger_power || 0);
+  const limitSoc    = cs.charge_limit_soc || '--';
+  const minsLeft    = cs.minutes_to_full_charge || 0;
+
+  st('tesla-soc', soc);
+  st('tesla-range', rangeKm);
+  st('tesla-limit', limitSoc + '%');
+
+  // Progress bar & SVG bar
+  const bar = $('tesla-soc-progress'); if(bar) bar.style.width = soc + '%';
+  const svgBar = $('tesla-soc-bar');
+  if(svgBar) svgBar.setAttribute('width', Math.round((soc/100)*76));
+
+  // Charge state display
+  if (chargeState === 'Charging') {
+    st('tesla-charge-power', '+' + chargeKw + ' kW');
+    st('tesla-charge-label', 'Charging');
+    const h = Math.floor(minsLeft/60), m = minsLeft%60;
+    st('tesla-time-to-full', h > 0 ? `${h}h ${m}m` : `${m}m`);
+    st('tesla-time-label', 'Until limit');
+    const cp = $('tesla-charge-power'); if(cp) cp.style.color = '#22c55e';
+  } else if (chargeState === 'Complete') {
+    st('tesla-charge-power', '✓ Full');
+    st('tesla-charge-label', 'Charge complete');
+    st('tesla-time-to-full', '--');
+    st('tesla-time-label', '');
+    const cp = $('tesla-charge-power'); if(cp) cp.style.color = '#22c55e';
+  } else if (chargeState === 'Disconnected') {
+    st('tesla-charge-power', 'Unplugged');
+    st('tesla-charge-label', 'Not connected');
+    st('tesla-time-to-full', '--');
+    st('tesla-time-label', '');
+    const cp = $('tesla-charge-power'); if(cp) cp.style.color = 'var(--muted)';
+  } else {
+    st('tesla-charge-power', chargeState);
+    st('tesla-charge-label', 'Status');
+    const cp = $('tesla-charge-power'); if(cp) cp.style.color = 'var(--muted)';
+  }
+
+  // Also update Wattpilot card with Tesla charge kW
+  st('ev-charge-kw', chargeKw);
+
+  // Badge
+  const b = $('tesla-badge'); if(b){b.className='bdg live';b.textContent='Live';}
+  const d = $('tesla-dot');   if(d) d.className='sdot live';
+
+  liveData.tesla = cs;
+}
+
+function updateTeslaAsleep() {
+  st('tesla-soc', '--'); st('tesla-range', '--');
+  st('tesla-charge-power', '💤 Sleeping'); st('tesla-charge-label', 'Car is asleep');
+  const b=$('tesla-badge');if(b){b.className='bdg';b.textContent='Asleep';}
+  const d=$('tesla-dot');if(d) d.className='sdot warn';
+}
+
+function updateTeslaOffline() {
+  const b=$('tesla-badge');if(b){b.className='bdg';b.textContent='Offline';}
+  const d=$('tesla-dot');if(d) d.className='sdot off';
+}
+
+function checkTeslaNotifications(cs) {
+  if (Notification.permission !== 'granted') return;
+  if (!$('tog-ev')?.checked) return;
+  const hour = new Date().getHours();
+  const isPeak = hour >= 10 && hour < 15;
+  const pvKW = (liveData.flow?.P_PV||0)/1000;
+  if (isPeak && pvKW >= 2 && cs.charging_state === 'Disconnected') {
+    const k = 'tesla-ev-' + new Date().toDateString() + '-' + hour;
+    const now = Date.now();
+    if (!notifCooldown[k] || now - notifCooldown[k] > 3600000) {
+      notifCooldown[k] = now;
+      sendNotification('🚗 Tesla Unplugged — Home Hub',
+        `Generating ${pvKW.toFixed(1)} kW solar but Tesla is disconnected. Plug in to charge for free!`, 'tesla-unplug');
+    }
+  }
+}
 
 /* ═══════════════════════════════════════════════════════
    INIT
@@ -1038,6 +1195,10 @@ window.addEventListener('load', async () => {
   // Fronius — live data
   await fetchFronius();
   setInterval(fetchFronius, 30000);
+
+  // Tesla — live data (refreshes token automatically)
+  fetchTesla();
+  setInterval(fetchTesla, 60000);
 
   // Open-Meteo weather
   fetchWeather();
