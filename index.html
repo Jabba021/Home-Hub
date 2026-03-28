@@ -617,7 +617,7 @@ footer{text-align:center;padding:28px 24px 32px;font-family:'JetBrains Mono',mon
     </div>
 
     <div class="mt">
-      <div class="sec-lbl">🔭 &nbsp;Looking Ahead — Multi-Day Events (Next 30 Days)</div>
+      <div class="sec-lbl">🔭 &nbsp;Looking Ahead — Multi-Day Events (Next 3 Months)</div>
       <div class="card cahead">
         <div class="ch">
           <div class="ct"><div class="ci" style="background:rgba(245,158,11,.1)">📌</div><div><div class="cn">Upcoming Multi-Day Events</div><div class="cs">Events spanning more than one day</div></div></div>
@@ -918,7 +918,7 @@ const STATIC_EVENTS=[
   {date:'2026-04-17',start:'10:00',end:'11:00',title:'Coaching Call — Dave McNeill',sub:'Monthly triathlon coaching',cal:'Jabbi',allDay:false},
 ];
 
-function ymd(dt){return dt.toISOString().slice(0,10);}
+function ymd(dt){return`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;}
 function addDays(dt,n){const r=new Date(dt);r.setDate(r.getDate()+n);return r;}
 function parseFmt(t){if(!t)return'';const[h,m]=t.split(':').map(Number);const ap=h>=12?'pm':'am';return`${h%12||12}:${String(m).padStart(2,'0')}${ap}`;}
 function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
@@ -947,10 +947,10 @@ function renderCalendar(events){
   const wb=$('week-cal-badge');if(wb){wb.className='bdg gcal';const wc=wrows.reduce((a,r)=>a+r.evs.length,0);wb.textContent=wc>0?`${wc} event${wc>1?'s':''}`:' Quiet week';}
 
   // AHEAD
-  const limit=ymd(addDays(now,30));
-  const multi=events.filter(e=>(e.multiDay||e.dateEnd)&&e.date>todayYMD&&e.date<=limit).sort((a,b)=>a.date.localeCompare(b.date));
+  const limit=ymd(addDays(now,92));
+  const multi=events.filter(e=>(e.multiDay||e.dateEnd)&&e.date>todayYMD&&e.date<=limit).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
   const ael=$('ahead-events');
-  ael.innerHTML=multi.length===0?'<div class="ev-no">No multi-day events in the next 30 days</div>':multi.map(e=>{const c=CAL_COLOURS[e.cal]||{dot:'#888'};const s=new Date(e.date+'T00:00:00'),en=e.dateEnd?new Date(e.dateEnd+'T00:00:00'):null;const nights=en?daysBetween(e.date,e.dateEnd):1;const sf=s.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),ef=en?en.toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'';return`<div class="ahead-row"><div style="width:8px;height:8px;border-radius:50%;background:${c.dot};box-shadow:0 0 5px ${c.dot}50;flex-shrink:0"></div><div style="flex:1"><div class="ahead-title">${e.title}</div>${e.sub?`<div class="ahead-dur">${e.sub}</div>`:''}</div><div style="text-align:right"><div class="ahead-span">${sf}${ef?' – '+ef:''}</div><div class="ahead-pill">${nights} night${nights>1?'s':''}</div></div></div>`;}).join('');
+  ael.innerHTML=multi.length===0?'<div class="ev-no">No multi-day events in the next 3 months</div>':multi.map(e=>{const c=CAL_COLOURS[e.cal]||{dot:'#888'};const s=new Date(e.date+'T00:00:00'),en=e.dateEnd?new Date(e.dateEnd+'T00:00:00'):null;const nights=en?daysBetween(e.date,e.dateEnd):1;const sf=s.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),ef=en?en.toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'';return`<div class="ahead-row"><div style="width:8px;height:8px;border-radius:50%;background:${c.dot};box-shadow:0 0 5px ${c.dot}50;flex-shrink:0"></div><div style="flex:1"><div class="ahead-title">${e.title}</div>${e.sub?`<div class="ahead-dur">${e.sub}</div>`:''}</div><div style="text-align:right"><div class="ahead-span">${sf}${ef?' – '+ef:''}</div><div class="ahead-pill">${nights} night${nights>1?'s':''}</div></div></div>`;}).join('');
   const ab=$('ahead-cal-badge');if(ab){ab.className='bdg gcal';ab.textContent=multi.length>0?`${multi.length} coming up`:' None';}
 }
 
@@ -974,7 +974,7 @@ function initGoogleAuth(){if(GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE')){alert('Ad
 const CAL_IDS_MAP={'dt3ujpeoh1tbqoinkssea4k3eg@group.calendar.google.com':'Jabbi','tg7pit84io5tho687lem8spk0qf5nk5h@import.calendar.google.com':'Jared - JBTA','26r1t5t426iv3c7mqdfo5f3rv06fe6ji@import.calendar.google.com':'JABBA TRAINING','8l964pp79dfiij7vei9tpp9n80@group.calendar.google.com':'Abs - Training','abi.hyndman@gmail.com':'Abs - Work','3b2af3a63fce94bec1eaab1542dfbcf8aab239007ed7a7e670f63757e0492c3c@group.calendar.google.com':'Abi Work','1dc5c206b57454a02024cd16a3fb792928ff805c9ae819f7041b5d5d1fa6bfcb@group.calendar.google.com':'Otis'};
 
 async function loadLiveCalendar(){
-  const tMin=new Date().toISOString(), tMax=new Date(Date.now()+31*86400000).toISOString(), evs=[];
+  const tMin=new Date().toISOString(), tMax=new Date(Date.now()+92*86400000).toISOString(), evs=[];
   for(const[id,name] of Object.entries(CAL_IDS_MAP)){try{const r=await gapi.client.calendar.events.list({calendarId:id,timeMin:tMin,timeMax:tMax,singleEvents:true,orderBy:'startTime',maxResults:50});for(const item of r.result.items||[]){const sd=item.start.date||item.start.dateTime?.slice(0,10),ed=item.end.date||item.end.dateTime?.slice(0,10);const allDay=!!item.start.date,spans=allDay&&daysBetween(sd,ed)>1;const st2=item.start.dateTime?new Date(item.start.dateTime).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}):null,et=item.end.dateTime?new Date(item.end.dateTime).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}):null;evs.push({date:sd,dateEnd:spans?new Date(new Date(ed)-86400000).toISOString().slice(0,10):null,start:st2,end:et,title:item.summary||'(No title)',sub:(item.location||item.description||'').slice(0,80),cal:name,allDay,multiDay:spans});}}catch(e){console.warn('Cal fetch failed:',id,e.message);}}
   renderCalendar(evs);
 }
